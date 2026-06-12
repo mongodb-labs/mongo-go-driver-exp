@@ -1,0 +1,71 @@
+# $schema: ../../schemas/operator.json
+name: $add
+link: https://www.mongodb.com/docs/manual/reference/operator/aggregation/add/
+minVersion: '2.6'
+type:
+  - resolvesToNumber
+  - resolvesToDate
+encode: single
+description: |
+  Adds numbers to return the sum, or adds numbers and a date to return a new date. If adding numbers and a date, treats the numbers as milliseconds. Accepts any number of argument expressions, but at most, one expression can resolve to a date.
+arguments:
+  - name: expression
+    type:
+      - resolvesToNumber
+      - resolvesToDate
+    variadic: array
+    description: |
+      The arguments can be any valid expression as long as they resolve to either all numbers or to numbers and a date.
+tests:
+  - name: Add Numbers
+    link: https://www.mongodb.com/docs/manual/reference/operator/aggregation/add/#add-numbers
+    pipeline:
+      - $project:
+          item: 1
+          total:
+            $add:
+              - $price
+              - $fee
+    schema:
+      sales:
+        _id:
+          types:
+            - bsonType: Number
+        item:
+          types:
+            - bsonType: String
+        price:
+          types:
+            - bsonType: Number
+        fee:
+          types:
+            - bsonType: Number
+        date:
+          types:
+            - bsonType: Date
+  - name: Perform Addition on a Date
+    link: https://www.mongodb.com/docs/manual/reference/operator/aggregation/add/#perform-addition-on-a-date
+    pipeline:
+      - $project:
+          item: 1
+          billing_date:
+            $add:
+              - $date
+              - 259200000
+    schema:
+      sales:
+        _id:
+          types:
+            - bsonType: Number
+        item:
+          types:
+            - bsonType: String
+        price:
+          types:
+            - bsonType: Number
+        fee:
+          types:
+            - bsonType: Number
+        date:
+          types:
+            - bsonType: Date
