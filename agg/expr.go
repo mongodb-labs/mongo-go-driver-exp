@@ -33,6 +33,9 @@ type AnyExpr struct {
 }
 
 func (ae AnyExpr) MarshalBSONValue() (byte, []byte, error) {
+	if ae.expr == nil {
+		return 0x0A, nil, nil // BSON null
+	}
 	typ, b, err := bson.MarshalValue(ae.expr)
 	return byte(typ), b, err
 }

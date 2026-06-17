@@ -37,14 +37,14 @@ func SumAccumulator[T NumberTypes](expr T) Accumulator {
 }
 
 // MinAccumulator returns the minimum value of expr across documents in the group ($min).
-func MinAccumulator[T AnyExpr](expr T) Accumulator {
+func MinAccumulator[T Expr](expr T) Accumulator {
 	return Accumulator{
 		doc: bson.D{{Key: "$min", Value: expr}},
 	}
 }
 
 // MaxAccumulator returns the maximum value of expr across documents in the group ($max).
-func MaxAccumulator[T AnyExpr](expr T) Accumulator {
+func MaxAccumulator[T Expr](expr T) Accumulator {
 	return Accumulator{
 		doc: bson.D{{Key: "$max", Value: expr}},
 	}
@@ -64,8 +64,15 @@ func PercentileAccumulator[T NumberTypes, U ArrayTypes | []float32 | []float64](
 	}
 }
 
+// CountAccumulator returns the number of documents in the group ($count).
+func CountAccumulator() Accumulator {
+	return Accumulator{
+		doc: bson.D{{Key: "$count", Value: bson.D{}}},
+	}
+}
+
 // PushAccumulator appends expr to an array of values accumulated across documents in the group ($push).
-func PushAccumulator[T AnyExpr](expr T) Accumulator {
+func PushAccumulator[T Expr](expr T) Accumulator {
 	return Accumulator{
 		doc: bson.D{{Key: "$push", Value: expr}},
 	}

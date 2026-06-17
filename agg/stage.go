@@ -23,12 +23,14 @@ func (p Pipeline) MarshalBSON() ([]byte, error) {
 
 // --- $match ---
 
-// MatchStage produces a $match stage from a query.Filter.
-// Build the filter in the query sub-package, e.g.:
+// MatchStage produces a $match stage from one or more query.Filters.
+// Multiple filters are merged into a single document (implicit AND).
+// Build filters in the query sub-package, e.g.:
 //
-//	agg.MatchStage(query.Field("qty", query.Eq(20)))
-func MatchStage(f query.Filter) Stage {
-	return Stage{{Key: "$match", Value: f}}
+//	agg.MatchStage(query.Field("qty", query.Gt(20)), query.Field("name", "Alice"))
+func MatchStage(filters ...query.Filter) Stage {
+	merged := query.And(filters...)
+	return Stage{{Key: "$match", Value: merged}}
 }
 
 // --- $set ---
@@ -140,18 +142,29 @@ func (s SortOrder) bsonValue() any {
 	}
 }
 
-// SortSpec pairs a field name with a sort direction.
-type SortSpec struct {
-	Field string
-	Order SortOrder
+// SortField pairs a field name with a sort direction for use in a $sort stage.
+// Construct via Sort.
+type SortField interface{ sortField() sortField }
+
+type sortField struct {
+	name  string
+	order SortOrder
+}
+
+func (sf sortField) sortField() sortField { return sf }
+
+// Sort creates a SortField that sorts the named field in the given direction.
+func Sort(field string, order SortOrder) SortField {
+	return sortField{name: field, order: order}
 }
 
 // SortStage produces a $sort stage.
 // Field order is preserved, which matters for multi-key sorts.
-func SortStage(specs ...SortSpec) Stage {
-	doc := make(bson.D, len(specs))
-	for i, s := range specs {
-		doc[i] = bson.E{Key: s.Field, Value: s.Order.bsonValue()}
+func SortStage(fields ...SortField) Stage {
+	doc := make(bson.D, len(fields))
+	for i, f := range fields {
+		sf := f.sortField()
+		doc[i] = bson.E{Key: sf.name, Value: sf.order.bsonValue()}
 	}
 	return Stage{{Key: "$sort", Value: doc}}
 }
