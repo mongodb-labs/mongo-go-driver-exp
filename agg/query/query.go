@@ -34,3 +34,47 @@ func Field(name string, cond FieldCondition) Filter {
 func Eq(value any) FieldCondition {
 	return FieldCondition{doc: bson.D{{Key: "$eq", Value: value}}}
 }
+
+// Gt creates a FieldCondition for greater than: { $gt: value }.
+// value may be any BSON-marshalable Go value.
+func Gt(value any) FieldCondition {
+	return FieldCondition{doc: bson.D{{Key: "$gt", Value: value}}}
+}
+
+// Gte creates a FieldCondition for greater than or equal to: { $gte: value }.
+// value may be any BSON-marshalable Go value.
+func Gte(value any) FieldCondition {
+	return FieldCondition{doc: bson.D{{Key: "$gte", Value: value}}}
+}
+
+// Lt creates a FieldCondition for less than: { $lt: value }.
+// value may be any BSON-marshalable Go value.
+func Lt(value any) FieldCondition {
+	return FieldCondition{doc: bson.D{{Key: "$lt", Value: value}}}
+}
+
+// Lte creates a FieldCondition for less than or equal to: { $lte: value }.
+// value may be any BSON-marshalable Go value.
+func Lte(value any) FieldCondition {
+	return FieldCondition{doc: bson.D{{Key: "$lte", Value: value}}}
+}
+
+// And creates a Filter for logical AND:
+// { $and: [ filter1, filter2, ... ] }
+func And(filters ...Filter) Filter {
+	clauses := make(bson.A, 0, len(filters))
+	for _, f := range filters {
+		clauses = append(clauses, f.doc)
+	}
+	return Filter{doc: bson.D{{Key: "$and", Value: clauses}}}
+}
+
+// Or creates a Filter for logical OR:
+// { $or: [ filter1, filter2, ... ] }
+func Or(filters ...Filter) Filter {
+	clauses := make(bson.A, 0, len(filters))
+	for _, f := range filters {
+		clauses = append(clauses, f.doc)
+	}
+	return Filter{doc: bson.D{{Key: "$or", Value: clauses}}}
+}

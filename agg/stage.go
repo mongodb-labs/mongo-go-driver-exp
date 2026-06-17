@@ -18,7 +18,7 @@ func (p Pipeline) MarshalBSON() ([]byte, error) {
 	for i, s := range p {
 		stages[i] = bson.D(s)
 	}
-	return bson.Marshal(stages)
+	return bson.Marshal(bson.D{{Key: "pipeline", Value: stages}})
 }
 
 // --- $match ---
@@ -57,34 +57,41 @@ func SetStage(fields ...SetField) Stage {
 // --- $project ---
 
 // ProjectionField specifies what to do with one field in a $project stage.
-// Construct via Include, Exclude, or Compute — do not build directly.
-type ProjectionField struct {
+// Construct via Include, Exclude, or Compute.
+type ProjectionField interface{ projectionField() projectionField }
+
+type projectionField struct {
 	name string
 	// val is int32(1), int32(0), or an Expr. Constrained by constructors.
 	val any
 }
 
+func (pf projectionField) projectionField() projectionField {
+	return pf
+}
+
 // Include retains the named field in the output document (sets it to 1).
 func Include(field string) ProjectionField {
-	return ProjectionField{name: field, val: int32(1)}
+	return projectionField{name: field, val: int32(1)}
 }
 
 // Exclude removes the named field from the output document (sets it to 0).
 func Exclude(field string) ProjectionField {
-	return ProjectionField{name: field, val: int32(0)}
+	return projectionField{name: field, val: int32(0)}
 }
 
 // Compute adds a new (or replaces an existing) field whose value is the
 // result of expr.
 func Compute(field string, expr Expr) ProjectionField {
-	return ProjectionField{name: field, val: expr}
+	return projectionField{name: field, val: expr}
 }
 
 // ProjectStage produces a $project stage from the given field specs.
 func ProjectStage(specs ...ProjectionField) Stage {
 	doc := make(bson.D, len(specs))
 	for i, s := range specs {
-		doc[i] = bson.E{Key: s.name, Value: s.val}
+		pf := s.projectionField()
+		doc[i] = bson.E{Key: pf.name, Value: pf.val}
 	}
 	return Stage{{Key: "$project", Value: doc}}
 }
