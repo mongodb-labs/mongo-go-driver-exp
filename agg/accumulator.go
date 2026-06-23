@@ -36,7 +36,7 @@ func CustomAccumulator[A ArrayTypes](init, accumulate string, accumulateArgs A, 
 // --- $addToSet ---
 
 // AddToSetAccumulator returns an array of unique expression values for each group ($addToSet).
-func AddToSetAccumulator[T Expr](expr T) Accumulator {
+func AddToSetAccumulator(expr Expr) Accumulator {
 	return Accumulator{doc: bson.D{{Key: "$addToSet", Value: expr}}}
 }
 
@@ -50,7 +50,7 @@ func AvgAccumulator[T NumberTypes](expr T) Accumulator {
 // --- $bottom ---
 
 // BottomAccumulator returns the bottom element within a group according to the specified sort order ($bottom).
-func BottomAccumulator[T Expr](output T, sortBy ...SortField) Accumulator {
+func BottomAccumulator(output Expr, sortBy ...SortField) Accumulator {
 	sortDoc := make(bson.D, len(sortBy))
 	for i, f := range sortBy {
 		sf := f.sortField()
@@ -65,7 +65,7 @@ func BottomAccumulator[T Expr](output T, sortBy ...SortField) Accumulator {
 // --- $bottomN ---
 
 // BottomNAccumulator returns the bottom n elements within a group according to the specified sort order ($bottomN).
-func BottomNAccumulator[T Expr, U NumberTypes](n U, output T, sortBy ...SortField) Accumulator {
+func BottomNAccumulator[T NumberTypes](n T, output Expr, sortBy ...SortField) Accumulator {
 	sortDoc := make(bson.D, len(sortBy))
 	for i, f := range sortBy {
 		sf := f.sortField()
@@ -117,7 +117,7 @@ func DenseRankAccumulator() Accumulator {
 
 // DerivativeAccumulator returns the average rate of change within the specified window ($derivative).
 // Pass a non-nil unit to specify a time unit (e.g. "week").
-func DerivativeAccumulator[T Expr](input T, unit *string) Accumulator {
+func DerivativeAccumulator(input Expr, unit *string) Accumulator {
 	doc := bson.D{{Key: "input", Value: input}}
 	if unit != nil {
 		doc = append(doc, bson.E{Key: "unit", Value: *unit})
@@ -151,14 +151,14 @@ func ExpMovingAvgAccumulator[T NumberTypes](input T, n *int32, alpha *float64) A
 // --- $first ---
 
 // FirstAccumulator returns the result of an expression for the first document in a group or window ($first).
-func FirstAccumulator[T Expr](expr T) Accumulator {
+func FirstAccumulator(expr Expr) Accumulator {
 	return Accumulator{doc: bson.D{{Key: "$first", Value: expr}}}
 }
 
 // --- $firstN ---
 
 // FirstNAccumulator returns the first n elements within a group ($firstN).
-func FirstNAccumulator[T Expr, U NumberTypes](input T, n U) Accumulator {
+func FirstNAccumulator[T NumberTypes](input Expr, n T) Accumulator {
 	return Accumulator{doc: bson.D{{Key: "$firstN", Value: bson.D{
 		{Key: "input", Value: input},
 		{Key: "n", Value: n},
@@ -169,7 +169,7 @@ func FirstNAccumulator[T Expr, U NumberTypes](input T, n U) Accumulator {
 
 // IntegralAccumulator returns the approximation of the area under a curve ($integral).
 // Pass a non-nil unit to specify a time unit (e.g. "week").
-func IntegralAccumulator[T Expr](input T, unit *string) Accumulator {
+func IntegralAccumulator(input Expr, unit *string) Accumulator {
 	doc := bson.D{{Key: "input", Value: input}}
 	if unit != nil {
 		doc = append(doc, bson.E{Key: "unit", Value: *unit})
@@ -180,14 +180,14 @@ func IntegralAccumulator[T Expr](input T, unit *string) Accumulator {
 // --- $last ---
 
 // LastAccumulator returns the result of an expression for the last document in a group or window ($last).
-func LastAccumulator[T Expr](expr T) Accumulator {
+func LastAccumulator(expr Expr) Accumulator {
 	return Accumulator{doc: bson.D{{Key: "$last", Value: expr}}}
 }
 
 // --- $lastN ---
 
 // LastNAccumulator returns the last n elements of input across documents in the group ($lastN).
-func LastNAccumulator[T Expr, U NumberTypes](input T, n U) Accumulator {
+func LastNAccumulator[T NumberTypes](input Expr, n T) Accumulator {
 	return Accumulator{
 		doc: bson.D{{Key: "$lastN", Value: bson.D{
 			{Key: "input", Value: input},
@@ -206,21 +206,21 @@ func LinearFillAccumulator[T NumberTypes](expr T) Accumulator {
 // --- $locf ---
 
 // LocfAccumulator carries forward the last non-null value for null and missing fields ($locf).
-func LocfAccumulator[T Expr](expr T) Accumulator {
+func LocfAccumulator(expr Expr) Accumulator {
 	return Accumulator{doc: bson.D{{Key: "$locf", Value: expr}}}
 }
 
 // --- $max ---
 
 // MaxAccumulator returns the maximum value of expr across documents in the group ($max).
-func MaxAccumulator[T Expr](expr T) Accumulator {
+func MaxAccumulator(expr Expr) Accumulator {
 	return Accumulator{doc: bson.D{{Key: "$max", Value: expr}}}
 }
 
 // --- $maxN ---
 
 // MaxNAccumulator returns the n largest values in an array ($maxN).
-func MaxNAccumulator[T Expr, U NumberTypes](input T, n U) Accumulator {
+func MaxNAccumulator[T NumberTypes](input Expr, n T) Accumulator {
 	return Accumulator{doc: bson.D{{Key: "$maxN", Value: bson.D{
 		{Key: "input", Value: input},
 		{Key: "n", Value: n},
@@ -240,14 +240,14 @@ func MedianAccumulator[T NumberTypes](input T) Accumulator {
 // --- $mergeObjects ---
 
 // MergeObjectsAccumulator combines multiple documents into a single document ($mergeObjects).
-func MergeObjectsAccumulator[T Expr](expr T) Accumulator {
+func MergeObjectsAccumulator(expr Expr) Accumulator {
 	return Accumulator{doc: bson.D{{Key: "$mergeObjects", Value: expr}}}
 }
 
 // --- $min ---
 
 // MinAccumulator returns the minimum value of expr across documents in the group ($min).
-func MinAccumulator[T Expr](expr T) Accumulator {
+func MinAccumulator(expr Expr) Accumulator {
 	return Accumulator{doc: bson.D{{Key: "$min", Value: expr}}}
 }
 
@@ -272,7 +272,7 @@ func MinMaxScalerRangeAccumulator[T NumberTypes, U Number](input T, min, max U) 
 // --- $minN ---
 
 // MinNAccumulator returns the n smallest values in an array ($minN).
-func MinNAccumulator[T Expr, U NumberTypes](input T, n U) Accumulator {
+func MinNAccumulator[T NumberTypes](input Expr, n T) Accumulator {
 	return Accumulator{doc: bson.D{{Key: "$minN", Value: bson.D{
 		{Key: "input", Value: input},
 		{Key: "n", Value: n},
@@ -299,7 +299,7 @@ func PercentileAccumulator[T NumberTypes, U ArrayTypes | []float32 | []float64](
 // --- $push ---
 
 // PushAccumulator appends expr to an array of values accumulated across documents in the group ($push).
-func PushAccumulator[T Expr](expr T) Accumulator {
+func PushAccumulator(expr Expr) Accumulator {
 	return Accumulator{doc: bson.D{{Key: "$push", Value: expr}}}
 }
 
@@ -321,7 +321,7 @@ func SetUnionAccumulator[T ArrayTypes](expr T) Accumulator {
 
 // ShiftAccumulator returns the value from a document in a specified position relative to the current document ($shift).
 // Pass a non-nil defaultExpr to specify a value for out-of-bounds positions; it must evaluate to a constant.
-func ShiftAccumulator[T Expr](output T, by int32, defaultExpr any) Accumulator {
+func ShiftAccumulator(output Expr, by int32, defaultExpr any) Accumulator {
 	doc := bson.D{
 		{Key: "output", Value: output},
 		{Key: "by", Value: by},
@@ -356,7 +356,7 @@ func SumAccumulator[T NumberTypes](expr T) Accumulator {
 // --- $top ---
 
 // TopAccumulator returns the top element within a group according to the specified sort order ($top).
-func TopAccumulator[T Expr](output T, sortBy ...SortField) Accumulator {
+func TopAccumulator(output Expr, sortBy ...SortField) Accumulator {
 	sortDoc := make(bson.D, len(sortBy))
 	for i, f := range sortBy {
 		sf := f.sortField()
@@ -371,7 +371,7 @@ func TopAccumulator[T Expr](output T, sortBy ...SortField) Accumulator {
 // --- $topN ---
 
 // TopNAccumulator returns the top n elements within a group according to the specified sort order ($topN).
-func TopNAccumulator[T Expr, U NumberTypes](n U, output T, sortBy ...SortField) Accumulator {
+func TopNAccumulator[T NumberTypes](n T, output Expr, sortBy ...SortField) Accumulator {
 	sortDoc := make(bson.D, len(sortBy))
 	for i, f := range sortBy {
 		sf := f.sortField()

@@ -45,32 +45,32 @@ func Divide[T NumberTypes, U NumberTypes](a T, b U) NumberExpr {
 // in an aggregation context.
 
 // Eq returns true if a equals b ($eq).
-func Eq[T AnyExpr, U AnyExpr](a T, b U) BoolExpr {
+func Eq(a AnyExpr, b AnyExpr) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$eq", Value: bson.A{a, b}}}}
 }
 
 // Ne returns true if a does not equal b ($ne).
-func Ne[T AnyExpr, U AnyExpr](a T, b U) BoolExpr {
+func Ne(a AnyExpr, b AnyExpr) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$ne", Value: bson.A{a, b}}}}
 }
 
 // Gt returns true if a is greater than b ($gt).
-func Gt[T AnyExpr, U AnyExpr](a T, b U) BoolExpr {
+func Gt(a AnyExpr, b AnyExpr) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$gt", Value: bson.A{a, b}}}}
 }
 
 // Gte returns true if a is greater than or equal to b ($gte).
-func Gte[T AnyExpr, U AnyExpr](a T, b U) BoolExpr {
+func Gte(a AnyExpr, b AnyExpr) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$gte", Value: bson.A{a, b}}}}
 }
 
 // Lt returns true if a is less than b ($lt).
-func Lt[T AnyExpr, U AnyExpr](a T, b U) BoolExpr {
+func Lt(a AnyExpr, b AnyExpr) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$lt", Value: bson.A{a, b}}}}
 }
 
 // Lte returns true if a is less than or equal to b ($lte).
-func Lte[T AnyExpr, U AnyExpr](a T, b U) BoolExpr {
+func Lte(a AnyExpr, b AnyExpr) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$lte", Value: bson.A{a, b}}}}
 }
 
@@ -78,12 +78,20 @@ func Lte[T AnyExpr, U AnyExpr](a T, b U) BoolExpr {
 
 // And returns true only when all expressions evaluate to true ($and).
 func And[T BoolTypes](exprs ...T) BoolExpr {
-	return BoolExpr{expr: bson.D{{Key: "$and", Value: exprSlice(exprs)}}}
+	a := make(bson.A, len(exprs))
+	for i, v := range exprs {
+		a[i] = v
+	}
+	return BoolExpr{expr: bson.D{{Key: "$and", Value: a}}}
 }
 
 // Or returns true when any expression evaluates to true ($or).
 func Or[T BoolTypes](exprs ...T) BoolExpr {
-	return BoolExpr{expr: bson.D{{Key: "$or", Value: exprSlice(exprs)}}}
+	a := make(bson.A, len(exprs))
+	for i, v := range exprs {
+		a[i] = v
+	}
+	return BoolExpr{expr: bson.D{{Key: "$or", Value: a}}}
 }
 
 // Not returns the boolean inverse of e ($not).
@@ -107,7 +115,7 @@ func Concat[T StringTypes, U StringTypes](value T, values ...U) StringExpr {
 // --- array ---
 
 // In returns true if expr is present in array ($in).
-func In[T AnyExpr, U ArrayTypes](expr T, array U) BoolExpr {
+func In[U ArrayTypes](expr AnyExpr, array U) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$in", Value: bson.A{expr, array}}}}
 }
 
@@ -139,7 +147,7 @@ func ArrayToObject[T ArrayTypes](array T) ObjectExpr {
 
 // IfNull returns the first non-null expression among val and more, or fallback
 // if all preceding ones are null ($ifNull).
-func IfNull[T AnyExpr](val T, fallback T, more ...T) AnyExpr {
+func IfNull(val AnyExpr, fallback AnyExpr, more ...AnyExpr) AnyExpr {
 	v := make([]any, len(more)+2)
 	v[0] = val
 	v[1] = fallback
@@ -149,14 +157,3 @@ func IfNull[T AnyExpr](val T, fallback T, more ...T) AnyExpr {
 	return AnyExpr{expr: bson.D{{Key: "$ifNull", Value: v}}}
 }
 
-// --- helpers ---
-
-// exprSlice converts a typed slice of Expr sub-interface values to bson.A.
-// Used so variadic operators produce a proper BSON array.
-func exprSlice[T Expr](vals []T) bson.A {
-	a := make(bson.A, len(vals))
-	for i, v := range vals {
-		a[i] = v
-	}
-	return a
-}
