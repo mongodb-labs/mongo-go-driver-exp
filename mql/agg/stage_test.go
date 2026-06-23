@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/mongodb-labs/mongo-go-driver-exp/agg"
-	"github.com/mongodb-labs/mongo-go-driver-exp/agg/query"
+	"github.com/mongodb-labs/mongo-go-driver-exp/mql/agg"
+	"github.com/mongodb-labs/mongo-go-driver-exp/mql/query"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 

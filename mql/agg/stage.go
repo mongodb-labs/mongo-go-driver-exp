@@ -3,7 +3,7 @@ package agg
 import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 
-	"github.com/mongodb-labs/mongo-go-driver-exp/agg/query"
+	"github.com/mongodb-labs/mongo-go-driver-exp/mql/query"
 )
 
 // Stage is a single aggregation pipeline stage, e.g. { $match: ... }.
