@@ -192,7 +192,7 @@ func Accumulate(field string, acc Accumulator) GroupField {
 
 // GroupStage produces a $group stage that groups documents by _id and computes
 // the given accumulator fields for each group.
-func GroupStage[T AnyExpr | ObjectExpr | string](_id T, fields ...GroupField) Stage {
+func GroupStage(_id Expr, fields ...GroupField) Stage {
 	doc := make(bson.D, 0, len(fields)+1)
 	doc = append(doc, bson.E{Key: "_id", Value: _id})
 	for _, f := range fields {
