@@ -4,14 +4,18 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
+type Number interface {
+	~int8 | ~int16 | ~int32 | ~int64 | ~int |
+		~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uint | ~uintptr |
+		~float32 | ~float64
+}
+
 type ArrayTypes interface {
 	AnyExpr | ArrayExpr | string
 }
 
 type NumberTypes interface {
-	AnyExpr | NumberExpr | string | ~int8 | ~int16 | ~int32 | ~int64 |
-		~int | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uint | ~uintptr |
-		~float32 | ~float64
+	AnyExpr | NumberExpr | Number | string
 }
 
 type StringTypes interface {

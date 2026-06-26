@@ -261,7 +261,7 @@ func MinMaxScalerAccumulator[T NumberTypes](input T) Accumulator {
 }
 
 // MinMaxScalerRangeAccumulator normalizes a numeric expression within a window of values to a custom [min, max] range ($minMaxScaler).
-func MinMaxScalerRangeAccumulator[T NumberTypes, U NumberTypes](input T, min, max U) Accumulator {
+func MinMaxScalerRangeAccumulator[T NumberTypes, U Number](input T, min, max U) Accumulator {
 	return Accumulator{doc: bson.D{{Key: "$minMaxScaler", Value: bson.D{
 		{Key: "input", Value: input},
 		{Key: "min", Value: min},
