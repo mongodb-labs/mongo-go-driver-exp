@@ -201,3 +201,11 @@ func GroupStage(_id Expr, fields ...GroupField) Stage {
 	}
 	return Stage{{Key: "$group", Value: doc}}
 }
+
+// --- $limit ---
+
+// LimitStage produces a $limit stage that restricts the pipeline to the first
+// limit documents.
+func LimitStage(limit int32) Stage {
+	return Stage{{Key: "$limit", Value: limit}}
+}

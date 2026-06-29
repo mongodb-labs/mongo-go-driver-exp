@@ -86,7 +86,6 @@ func TestSetStage_OverwriteExistingField(t *testing.T) {
 
 // --- $project ---
 
-// TODO: Add limit of 1 when limit stage is implemented
 func TestProjectStage_IncludeSpecificFieldsInOutputDocs(t *testing.T) {
 	got := agg.Pipeline{
 		agg.MatchStage(query.Field("title", "The Great Train Robbery")),
@@ -94,6 +93,7 @@ func TestProjectStage_IncludeSpecificFieldsInOutputDocs(t *testing.T) {
 			agg.Include("title"),
 			agg.Include("rated"),
 		),
+		agg.LimitStage(1),
 	}
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: "The Great Train Robbery"}}}},
@@ -101,11 +101,11 @@ func TestProjectStage_IncludeSpecificFieldsInOutputDocs(t *testing.T) {
 			{Key: "title", Value: 1},
 			{Key: "rated", Value: 1},
 		}}},
+		bson.D{{Key: "$limit", Value: 1}},
 	}
 	assertPipelineEqual(t, got, want)
 }
 
-// TODO: Add limit of 1 when limit stage is implemented
 func TestProjectStage_SuppressIdFieldInOutputDocs(t *testing.T) {
 	got := agg.Pipeline{
 		agg.MatchStage(query.Field("title", "The Great Train Robbery")),
@@ -114,6 +114,7 @@ func TestProjectStage_SuppressIdFieldInOutputDocs(t *testing.T) {
 			agg.Include("title"),
 			agg.Include("rated"),
 		),
+		agg.LimitStage(1),
 	}
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: "The Great Train Robbery"}}}},
@@ -122,26 +123,27 @@ func TestProjectStage_SuppressIdFieldInOutputDocs(t *testing.T) {
 			{Key: "title", Value: 1},
 			{Key: "rated", Value: 1},
 		}}},
+		bson.D{{Key: "$limit", Value: 1}},
 	}
 	assertPipelineEqual(t, got, want)
 }
 
-// TODO: Add limit of 1 when limit stage is implemented
 func TestProjectStage_ExcludeFieldsFromOutputDocs(t *testing.T) {
 	got := agg.Pipeline{
 		agg.MatchStage(query.Field("title", "The Great Train Robbery")),
 		agg.ProjectStage(agg.Exclude("rated")),
+		agg.LimitStage(1),
 	}
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: "The Great Train Robbery"}}}},
 		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "rated", Value: 0},
 		}}},
+		bson.D{{Key: "$limit", Value: 1}},
 	}
 	assertPipelineEqual(t, got, want)
 }
 
-// TODO: Add limit of 1 when limit stage is implemented
 func TestProjectStage_ExcludeFieldsFromEmbeddedDocs(t *testing.T) {
 	got := agg.Pipeline{
 		agg.MatchStage(query.Field("title", "The Great Train Robbery")),
@@ -149,6 +151,7 @@ func TestProjectStage_ExcludeFieldsFromEmbeddedDocs(t *testing.T) {
 			agg.Exclude("imdb.id"),
 			agg.Exclude("type"),
 		),
+		agg.LimitStage(1),
 	}
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: "The Great Train Robbery"}}}},
@@ -156,26 +159,27 @@ func TestProjectStage_ExcludeFieldsFromEmbeddedDocs(t *testing.T) {
 			{Key: "imdb.id", Value: 0},
 			{Key: "type", Value: 0},
 		}}},
+		bson.D{{Key: "$limit", Value: 1}},
 	}
 	assertPipelineEqual(t, got, want)
 }
 
-// TODO: Add limit of 1 when limit stage is implemented
 func TestProjectStage_IncludeSpecificFieldsFromEmbeddedDocs(t *testing.T) {
 	got := agg.Pipeline{
 		agg.MatchStage(query.Field("title", "The Great Train Robbery")),
 		agg.ProjectStage(agg.Include("imdb.rating")),
+		agg.LimitStage(1),
 	}
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: "The Great Train Robbery"}}}},
 		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "imdb.rating", Value: 1},
 		}}},
+		bson.D{{Key: "$limit", Value: 1}},
 	}
 	assertPipelineEqual(t, got, want)
 }
 
-// TODO: Add limit of 1 when limit stage is implemented
 // TODO: Add computed field leadActor: { $arrayElemAt: [ "$cast", 0 ] }
 // when arrayElemAt operator is implemented
 func TestProjectStage_IncludeComputedFields(t *testing.T) {
@@ -185,6 +189,7 @@ func TestProjectStage_IncludeComputedFields(t *testing.T) {
 			agg.Include("title"),
 			agg.Compute("releaseYear", "$year"),
 		),
+		agg.LimitStage(1),
 	}
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: "The Great Train Robbery"}}}},
@@ -192,6 +197,7 @@ func TestProjectStage_IncludeComputedFields(t *testing.T) {
 			{Key: "title", Value: 1},
 			{Key: "releaseYear", Value: "$year"},
 		}}},
+		bson.D{{Key: "$limit", Value: 1}},
 	}
 	assertPipelineEqual(t, got, want)
 }

@@ -1,4 +1,3 @@
 go 1.26.4
 
 use ./mql
-use ./mql/agg
