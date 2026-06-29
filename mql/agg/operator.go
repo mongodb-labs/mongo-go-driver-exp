@@ -7,7 +7,7 @@ import "go.mongodb.org/mongo-driver/v2/bson"
 // Add returns the sum of the given numeric expressions ($add).
 // TODO: $add also accepts a date + milliseconds to produce a date;
 // that variant is not yet modeled here.
-func Add[T NumberTypes, U NumberTypes](value T, values ...U) NumberExpr {
+func Add[T NumberResolver, U NumberResolver](value T, values ...U) NumberExpr {
 	v := make([]any, len(values)+1)
 	v[0] = value
 	for i := range values {
@@ -21,12 +21,12 @@ func Add[T NumberTypes, U NumberTypes](value T, values ...U) NumberExpr {
 // Subtract returns a minus b ($subtract).
 // TODO: $subtract also supports date-date → millis and date-millis → date;
 // those variants are not yet modeled here.
-func Subtract[T NumberTypes, U NumberTypes](a T, b U) NumberExpr {
+func Subtract[T NumberResolver, U NumberResolver](a T, b U) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$subtract", Value: bson.A{a, b}}}}
 }
 
 // Multiply returns the product of the given numeric expressions ($multiply).
-func Multiply[T NumberTypes, U NumberTypes](value T, values ...U) NumberExpr {
+func Multiply[T NumberResolver, U NumberResolver](value T, values ...U) NumberExpr {
 	v := make([]any, len(values)+1)
 	v[0] = value
 	for i := range values {
@@ -36,7 +36,7 @@ func Multiply[T NumberTypes, U NumberTypes](value T, values ...U) NumberExpr {
 }
 
 // Divide returns a divided by b ($divide).
-func Divide[T NumberTypes, U NumberTypes](a T, b U) NumberExpr {
+func Divide[T NumberResolver, U NumberResolver](a T, b U) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$divide", Value: bson.A{a, b}}}}
 }
 
@@ -77,7 +77,7 @@ func Lte(a AnyExpr, b AnyExpr) BoolExpr {
 // --- logical ---
 
 // And returns true only when all expressions evaluate to true ($and).
-func And[T BoolTypes](exprs ...T) BoolExpr {
+func And[T BoolResolver](exprs ...T) BoolExpr {
 	a := make(bson.A, len(exprs))
 	for i, v := range exprs {
 		a[i] = v
@@ -86,7 +86,7 @@ func And[T BoolTypes](exprs ...T) BoolExpr {
 }
 
 // Or returns true when any expression evaluates to true ($or).
-func Or[T BoolTypes](exprs ...T) BoolExpr {
+func Or[T BoolResolver](exprs ...T) BoolExpr {
 	a := make(bson.A, len(exprs))
 	for i, v := range exprs {
 		a[i] = v
@@ -96,14 +96,14 @@ func Or[T BoolTypes](exprs ...T) BoolExpr {
 
 // Not returns the boolean inverse of e ($not).
 // $not takes a single-element array in the aggregation expression syntax.
-func Not[T BoolTypes](e T) BoolExpr {
+func Not[T BoolResolver](e T) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$not", Value: bson.A{e}}}}
 }
 
 // --- string ---
 
 // Concat concatenates the given string expressions ($concat).
-func Concat[T StringTypes, U StringTypes](value T, values ...U) StringExpr {
+func Concat[T StringResolver, U StringResolver](value T, values ...U) StringExpr {
 	v := make([]any, len(values)+1)
 	v[0] = value
 	for i := range values {
@@ -115,13 +115,13 @@ func Concat[T StringTypes, U StringTypes](value T, values ...U) StringExpr {
 // --- array ---
 
 // In returns true if expr is present in array ($in).
-func In[U ArrayTypes](expr AnyExpr, array U) BoolExpr {
+func In[U ArrayResolver](expr AnyExpr, array U) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$in", Value: bson.A{expr, array}}}}
 }
 
 // FilterArray selects elements of input for which cond evaluates to true ($filter).
 // as names the variable for each element; pass "" to use the MongoDB default ("this").
-func FilterArray[T ArrayTypes, U BoolTypes](input T, cond U, as string, limit ...NumberExpr) ArrayExpr {
+func FilterArray[T ArrayResolver, U BoolResolver](input T, cond U, as string, limit ...NumberExpr) ArrayExpr {
 	args := bson.D{
 		{Key: "input", Value: input},
 		{Key: "cond", Value: cond},
@@ -139,7 +139,7 @@ func FilterArray[T ArrayTypes, U BoolTypes](input T, cond U, as string, limit ..
 }
 
 // ArrayToObject converts an array of key-value pairs to a document ($arrayToObject).
-func ArrayToObject[T ArrayTypes](array T) ObjectExpr {
+func ArrayToObject[T ArrayResolver](array T) ObjectExpr {
 	return ObjectExpr{expr: bson.D{{Key: "$arrayToObject", Value: array}}}
 }
 
@@ -156,4 +156,3 @@ func IfNull(val AnyExpr, fallback AnyExpr, more ...AnyExpr) AnyExpr {
 	}
 	return AnyExpr{expr: bson.D{{Key: "$ifNull", Value: v}}}
 }
-

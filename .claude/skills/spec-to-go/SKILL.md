@@ -35,10 +35,10 @@ Use the type constraint table from CLAUDE.md:
 
 | Spec type            | Go constraint / type |
 |----------------------|----------------------|
-| `resolvesToNumber`   | `NumberTypes`        |
-| `resolvesToArray`    | `ArrayTypes`         |
-| `resolvesToString`   | `StringTypes`        |
-| `resolvesToBool`     | `BoolTypes`          |
+| `resolvesToNumber`   | `NumberResolver`        |
+| `resolvesToArray`    | `ArrayResolver`         |
+| `resolvesToString`   | `StringResolver`        |
+| `resolvesToBool`     | `BoolResolver`          |
 | `expression`         | `Expr`               |
 | `accumulator`        | `Accumulator`        |
 | plain numeric literal | `Number`            |
