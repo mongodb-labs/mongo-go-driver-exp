@@ -46,15 +46,15 @@ Map MQL spec argument types to these Go constraints:
 
 | Spec type            | Go constraint / type |
 |----------------------|----------------------|
-| `resolvesToNumber`   | `NumberTypes`        |
-| `resolvesToArray`    | `ArrayTypes`         |
-| `resolvesToString`   | `StringTypes`        |
-| `resolvesToBool`     | `BoolTypes`          |
+| `resolvesToNumber`   | `NumberResolver`        |
+| `resolvesToArray`    | `ArrayResolver`         |
+| `resolvesToString`   | `StringResolver`        |
+| `resolvesToBool`     | `BoolResolver`          |
 | `expression`         | `Expr`               |
 | `accumulator`        | `Accumulator`        |
 | plain Go number      | `Number`             |
 
-The `Expr` alias is `any`. Use the narrower typed constraints (`NumberTypes`, etc.) when the spec restricts the argument.
+The `Expr` alias is `any`. Use the narrower typed constraints (`NumberResolver`, etc.) when the spec restricts the argument.
 
 ## BSON encoding
 

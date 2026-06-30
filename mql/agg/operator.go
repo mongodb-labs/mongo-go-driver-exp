@@ -3,24 +3,24 @@ package agg
 import "go.mongodb.org/mongo-driver/v2/bson"
 
 // Abs returns the absolute value of a number ($abs).
-func Abs[T NumberTypes](expr T) NumberExpr {
+func Abs[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$abs", Value: expr}}}
 }
 
 // Acos returns the arccosine of a value in radians ($acos).
-func Acos[T NumberTypes](expr T) NumberExpr {
+func Acos[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$acos", Value: expr}}}
 }
 
 // Acosh returns the inverse hyperbolic cosine of a value in radians ($acosh).
-func Acosh[T NumberTypes](expr T) NumberExpr {
+func Acosh[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$acosh", Value: expr}}}
 }
 
 // Add returns the sum of the given numeric expressions ($add).
 // TODO: $add also accepts a date + milliseconds to produce a date;
 // that variant is not yet modeled here.
-func Add[T NumberTypes, U NumberTypes](value T, values ...U) NumberExpr {
+func Add[T NumberResolver, U NumberResolver](value T, values ...U) NumberExpr {
 	v := make([]any, len(values)+1)
 	v[0] = value
 	for i := range values {
@@ -32,7 +32,7 @@ func Add[T NumberTypes, U NumberTypes](value T, values ...U) NumberExpr {
 }
 
 // And returns true only when all expressions evaluate to true ($and).
-func And[T BoolTypes](exprs ...T) BoolExpr {
+func And[T BoolResolver](exprs ...T) BoolExpr {
 	a := make(bson.A, len(exprs))
 	for i, v := range exprs {
 		a[i] = v
@@ -41,32 +41,32 @@ func And[T BoolTypes](exprs ...T) BoolExpr {
 }
 
 // ArrayToObject converts an array of key-value pairs to a document ($arrayToObject).
-func ArrayToObject[T ArrayTypes](array T) ObjectExpr {
+func ArrayToObject[T ArrayResolver](array T) ObjectExpr {
 	return ObjectExpr{expr: bson.D{{Key: "$arrayToObject", Value: array}}}
 }
 
 // Asin returns the arcsine of a value in radians ($asin).
-func Asin[T NumberTypes](expr T) NumberExpr {
+func Asin[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$asin", Value: expr}}}
 }
 
 // Asinh returns the inverse hyperbolic sine of a value in radians ($asinh).
-func Asinh[T NumberTypes](expr T) NumberExpr {
+func Asinh[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$asinh", Value: expr}}}
 }
 
 // Atan returns the arctangent of a value in radians ($atan).
-func Atan[T NumberTypes](expr T) NumberExpr {
+func Atan[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$atan", Value: expr}}}
 }
 
 // Atan2 returns the arctangent of y/x in radians ($atan2).
-func Atan2[T NumberTypes, U NumberTypes](y T, x U) NumberExpr {
+func Atan2[T NumberResolver, U NumberResolver](y T, x U) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$atan2", Value: bson.A{y, x}}}}
 }
 
 // Atanh returns the inverse hyperbolic tangent of a value in radians ($atanh).
-func Atanh[T NumberTypes](expr T) NumberExpr {
+func Atanh[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$atanh", Value: expr}}}
 }
 
@@ -83,7 +83,7 @@ func BitAnd(exprs ...Expr) NumberExpr {
 
 // BitNot returns the bitwise NOT of an int or long value ($bitNot).
 // MongoDB requires an int or long operand; other numeric types cause a runtime error.
-func BitNot[T NumberTypes](expr T) NumberExpr {
+func BitNot[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$bitNot", Value: expr}}}
 }
 
@@ -100,7 +100,7 @@ func BitXor(exprs ...Expr) NumberExpr {
 }
 
 // Ceil returns the smallest integer greater than or equal to the number ($ceil).
-func Ceil[T NumberTypes](expr T) NumberExpr {
+func Ceil[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$ceil", Value: expr}}}
 }
 
@@ -110,7 +110,7 @@ func Cmp(a Expr, b Expr) NumberExpr {
 }
 
 // Concat concatenates the given string expressions ($concat).
-func Concat[T StringTypes, U StringTypes](value T, values ...U) StringExpr {
+func Concat[T StringResolver, U StringResolver](value T, values ...U) StringExpr {
 	v := make([]any, len(values)+1)
 	v[0] = value
 	for i := range values {
@@ -120,22 +120,22 @@ func Concat[T StringTypes, U StringTypes](value T, values ...U) StringExpr {
 }
 
 // Cos returns the cosine of a value in radians ($cos).
-func Cos[T NumberTypes](expr T) NumberExpr {
+func Cos[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$cos", Value: expr}}}
 }
 
 // Cosh returns the hyperbolic cosine of a value in radians ($cosh).
-func Cosh[T NumberTypes](expr T) NumberExpr {
+func Cosh[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$cosh", Value: expr}}}
 }
 
 // DegreesToRadians converts a value from degrees to radians ($degreesToRadians).
-func DegreesToRadians[T NumberTypes](expr T) NumberExpr {
+func DegreesToRadians[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$degreesToRadians", Value: expr}}}
 }
 
 // Divide returns a divided by b ($divide).
-func Divide[T NumberTypes, U NumberTypes](a T, b U) NumberExpr {
+func Divide[T NumberResolver, U NumberResolver](a T, b U) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$divide", Value: bson.A{a, b}}}}
 }
 
@@ -145,13 +145,13 @@ func Eq(a Expr, b Expr) BoolExpr {
 }
 
 // Exp raises Euler's number e to the specified exponent ($exp).
-func Exp[T NumberTypes](exponent T) NumberExpr {
+func Exp[T NumberResolver](exponent T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$exp", Value: exponent}}}
 }
 
 // FilterArray selects elements of input for which cond evaluates to true ($filter).
 // as names the variable for each element; pass "" to use the MongoDB default ("this").
-func FilterArray[T ArrayTypes, U BoolTypes](input T, as string, cond U, limit ...Expr) ArrayExpr {
+func FilterArray[T ArrayResolver, U BoolResolver](input T, as string, cond U, limit ...Expr) ArrayExpr {
 	args := bson.D{bson.E{Key: "input", Value: input}}
 	if as != "" {
 		args = append(args, bson.E{Key: "as", Value: as})
@@ -169,7 +169,7 @@ func FilterArray[T ArrayTypes, U BoolTypes](input T, as string, cond U, limit ..
 }
 
 // Floor returns the largest integer less than or equal to the number ($floor).
-func Floor[T NumberTypes](expr T) NumberExpr {
+func Floor[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$floor", Value: expr}}}
 }
 
@@ -196,7 +196,7 @@ func IfNull(val Expr, fallback Expr, more ...Expr) AnyExpr {
 }
 
 // In returns true if expr is present in array ($in).
-func In[U ArrayTypes](expr Expr, array U) BoolExpr {
+func In[U ArrayResolver](expr Expr, array U) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$in", Value: bson.A{expr, array}}}}
 }
 
@@ -209,7 +209,7 @@ type IndexOfOptions struct {
 }
 
 // IndexOfBytes searches a string for a substring and returns the UTF-8 byte index of the first occurrence, or -1 if not found ($indexOfBytes).
-func IndexOfBytes[T StringTypes, U StringTypes](str T, substring U, opts *IndexOfOptions) NumberExpr {
+func IndexOfBytes[T StringResolver, U StringResolver](str T, substring U, opts *IndexOfOptions) NumberExpr {
 	args := bson.A{str, substring}
 	if opts != nil && opts.Start != nil {
 		args = append(args, opts.Start)
@@ -221,7 +221,7 @@ func IndexOfBytes[T StringTypes, U StringTypes](str T, substring U, opts *IndexO
 }
 
 // IndexOfCP searches a string for a substring and returns the UTF-8 code point index of the first occurrence, or -1 if not found ($indexOfCP).
-func IndexOfCP[T StringTypes, U StringTypes](str T, substring U, opts *IndexOfOptions) NumberExpr {
+func IndexOfCP[T StringResolver, U StringResolver](str T, substring U, opts *IndexOfOptions) NumberExpr {
 	args := bson.A{str, substring}
 	if opts != nil && opts.Start != nil {
 		args = append(args, opts.Start)
@@ -233,17 +233,17 @@ func IndexOfCP[T StringTypes, U StringTypes](str T, substring U, opts *IndexOfOp
 }
 
 // Ln calculates the natural logarithm of a number ($ln).
-func Ln[T NumberTypes](number T) NumberExpr {
+func Ln[T NumberResolver](number T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$ln", Value: number}}}
 }
 
 // Log calculates the log of number in the specified base ($log).
-func Log[T NumberTypes, U NumberTypes](number T, base U) NumberExpr {
+func Log[T NumberResolver, U NumberResolver](number T, base U) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$log", Value: bson.A{number, base}}}}
 }
 
 // Log10 calculates the log base 10 of a number ($log10).
-func Log10[T NumberTypes](number T) NumberExpr {
+func Log10[T NumberResolver](number T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$log10", Value: number}}}
 }
 
@@ -258,7 +258,7 @@ func Lte(a Expr, b Expr) BoolExpr {
 }
 
 // Ltrim removes whitespace or the specified characters from the beginning of a string ($ltrim).
-func Ltrim[T StringTypes](input T, chars ...Expr) StringExpr {
+func Ltrim[T StringResolver](input T, chars ...Expr) StringExpr {
 	if len(chars) > 1 {
 		panic("Ltrim: at most one chars expression may be provided")
 	}
@@ -292,12 +292,12 @@ func Min(value Expr, values ...Expr) AnyExpr {
 }
 
 // Mod returns the remainder of dividing dividend by divisor ($mod).
-func Mod[T NumberTypes, U NumberTypes](dividend T, divisor U) NumberExpr {
+func Mod[T NumberResolver, U NumberResolver](dividend T, divisor U) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$mod", Value: bson.A{dividend, divisor}}}}
 }
 
 // Multiply returns the product of the given numeric expressions ($multiply).
-func Multiply[T NumberTypes, U NumberTypes](value T, values ...U) NumberExpr {
+func Multiply[T NumberResolver, U NumberResolver](value T, values ...U) NumberExpr {
 	v := make([]any, len(values)+1)
 	v[0] = value
 	for i := range values {
@@ -313,12 +313,12 @@ func Ne(a Expr, b Expr) BoolExpr {
 
 // Not returns the boolean inverse of e ($not).
 // $not takes a single-element array in the aggregation expression syntax.
-func Not[T BoolTypes](e T) BoolExpr {
+func Not[T BoolResolver](e T) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$not", Value: bson.A{e}}}}
 }
 
 // Or returns true when any expression evaluates to true ($or).
-func Or[T BoolTypes](exprs ...T) BoolExpr {
+func Or[T BoolResolver](exprs ...T) BoolExpr {
 	a := make(bson.A, len(exprs))
 	for i, v := range exprs {
 		a[i] = v
@@ -327,17 +327,17 @@ func Or[T BoolTypes](exprs ...T) BoolExpr {
 }
 
 // Pow raises number to the specified exponent ($pow).
-func Pow[T NumberTypes, U NumberTypes](number T, exponent U) NumberExpr {
+func Pow[T NumberResolver, U NumberResolver](number T, exponent U) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$pow", Value: bson.A{number, exponent}}}}
 }
 
 // RadiansToDegrees converts a value from radians to degrees ($radiansToDegrees).
-func RadiansToDegrees[T NumberTypes](expr T) NumberExpr {
+func RadiansToDegrees[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$radiansToDegrees", Value: expr}}}
 }
 
 // RegexFind applies a regular expression to a string and returns information on the first matched substring ($regexFind).
-func RegexFind[T StringTypes](input T, regex Expr, options ...string) ObjectExpr {
+func RegexFind[T StringResolver](input T, regex Expr, options ...string) ObjectExpr {
 	if len(options) > 1 {
 		panic("RegexFind: at most one options string may be provided")
 	}
@@ -349,7 +349,7 @@ func RegexFind[T StringTypes](input T, regex Expr, options ...string) ObjectExpr
 }
 
 // RegexFindAll applies a regular expression to a string and returns information on all matched substrings ($regexFindAll).
-func RegexFindAll[T StringTypes](input T, regex Expr, options ...string) ArrayExpr {
+func RegexFindAll[T StringResolver](input T, regex Expr, options ...string) ArrayExpr {
 	if len(options) > 1 {
 		panic("RegexFindAll: at most one options string may be provided")
 	}
@@ -361,7 +361,7 @@ func RegexFindAll[T StringTypes](input T, regex Expr, options ...string) ArrayEx
 }
 
 // RegexMatch applies a regular expression to a string and returns true if a match is found ($regexMatch).
-func RegexMatch[T StringTypes](input T, regex Expr, options ...string) BoolExpr {
+func RegexMatch[T StringResolver](input T, regex Expr, options ...string) BoolExpr {
 	if len(options) > 1 {
 		panic("RegexMatch: at most one options string may be provided")
 	}
@@ -392,7 +392,7 @@ func ReplaceOne(input Expr, find Expr, replacement Expr) StringExpr {
 
 // Round rounds a number to a whole integer or to a specified decimal place ($round).
 // When place is omitted the array form is still used: [$number] (equivalent to place 0).
-func Round[T NumberTypes](number T, place ...int) NumberExpr {
+func Round[T NumberResolver](number T, place ...int) NumberExpr {
 	if len(place) == 0 {
 		return NumberExpr{expr: bson.D{{Key: "$round", Value: bson.A{number}}}}
 	}
@@ -400,7 +400,7 @@ func Round[T NumberTypes](number T, place ...int) NumberExpr {
 }
 
 // Rtrim removes whitespace characters or the specified characters from the end of a string ($rtrim).
-func Rtrim[T StringTypes](input T, chars ...Expr) StringExpr {
+func Rtrim[T StringResolver](input T, chars ...Expr) StringExpr {
 	if len(chars) > 1 {
 		panic("Rtrim: at most one chars expression may be provided")
 	}
@@ -412,27 +412,27 @@ func Rtrim[T StringTypes](input T, chars ...Expr) StringExpr {
 }
 
 // Sigmoid returns 1 / (1 + e^(-x)) ($sigmoid).
-func Sigmoid[T NumberTypes](expr T) NumberExpr {
+func Sigmoid[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$sigmoid", Value: expr}}}
 }
 
 // Sin returns the sine of a value in radians ($sin).
-func Sin[T NumberTypes](expr T) NumberExpr {
+func Sin[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$sin", Value: expr}}}
 }
 
 // Sinh returns the hyperbolic sine of a value in radians ($sinh).
-func Sinh[T NumberTypes](expr T) NumberExpr {
+func Sinh[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$sinh", Value: expr}}}
 }
 
 // Split splits a string into substrings based on a delimiter and returns an array of substrings ($split).
-func Split[T StringTypes](str T, delimiter Expr) ArrayExpr {
+func Split[T StringResolver](str T, delimiter Expr) ArrayExpr {
 	return ArrayExpr{expr: bson.D{{Key: "$split", Value: bson.A{str, delimiter}}}}
 }
 
 // Sqrt calculates the square root of a number ($sqrt).
-func Sqrt[T NumberTypes](number T) NumberExpr {
+func Sqrt[T NumberResolver](number T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$sqrt", Value: number}}}
 }
 
@@ -447,39 +447,39 @@ func StdDevSamp(exprs ...Expr) NumberExpr {
 }
 
 // Strcasecmp performs case-insensitive string comparison and returns 0 if equivalent, 1 if the first is greater, and -1 if less ($strcasecmp).
-func Strcasecmp[T StringTypes, U StringTypes](expr1 T, expr2 U) NumberExpr {
+func Strcasecmp[T StringResolver, U StringResolver](expr1 T, expr2 U) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$strcasecmp", Value: bson.A{expr1, expr2}}}}
 }
 
 // StrLenBytes returns the number of UTF-8 encoded bytes in a string ($strLenBytes).
-func StrLenBytes[T StringTypes](expr T) NumberExpr {
+func StrLenBytes[T StringResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$strLenBytes", Value: expr}}}
 }
 
 // StrLenCP returns the number of UTF-8 code points in a string ($strLenCP).
-func StrLenCP[T StringTypes](expr T) NumberExpr {
+func StrLenCP[T StringResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$strLenCP", Value: expr}}}
 }
 
 // Substr returns a substring of a string. Deprecated; use SubstrBytes or SubstrCP ($substr).
-func Substr[T StringTypes, U NumberTypes, V NumberTypes](str T, start U, length V) StringExpr {
+func Substr[T StringResolver, U NumberResolver, V NumberResolver](str T, start U, length V) StringExpr {
 	return StringExpr{expr: bson.D{{Key: "$substr", Value: bson.A{str, start, length}}}}
 }
 
 // SubstrBytes returns the substring of a string starting at the specified UTF-8 byte index for the specified number of bytes ($substrBytes).
-func SubstrBytes[T StringTypes, U NumberTypes, V NumberTypes](str T, start U, length V) StringExpr {
+func SubstrBytes[T StringResolver, U NumberResolver, V NumberResolver](str T, start U, length V) StringExpr {
 	return StringExpr{expr: bson.D{{Key: "$substrBytes", Value: bson.A{str, start, length}}}}
 }
 
 // SubstrCP returns the substring of a string starting at the specified UTF-8 code point index for the specified number of code points ($substrCP).
-func SubstrCP[T StringTypes, U NumberTypes, V NumberTypes](str T, start U, length V) StringExpr {
+func SubstrCP[T StringResolver, U NumberResolver, V NumberResolver](str T, start U, length V) StringExpr {
 	return StringExpr{expr: bson.D{{Key: "$substrCP", Value: bson.A{str, start, length}}}}
 }
 
 // Subtract returns a minus b ($subtract).
 // TODO: $subtract also supports date-date → millis and date-millis → date;
 // those variants are not yet modeled here.
-func Subtract[T NumberTypes, U NumberTypes](a T, b U) NumberExpr {
+func Subtract[T NumberResolver, U NumberResolver](a T, b U) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$subtract", Value: bson.A{a, b}}}}
 }
 
@@ -489,27 +489,27 @@ func Sum(exprs ...Expr) NumberExpr {
 }
 
 // Tan returns the tangent of a value in radians ($tan).
-func Tan[T NumberTypes](expr T) NumberExpr {
+func Tan[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$tan", Value: expr}}}
 }
 
 // Tanh returns the hyperbolic tangent of a value in radians ($tanh).
-func Tanh[T NumberTypes](expr T) NumberExpr {
+func Tanh[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$tanh", Value: expr}}}
 }
 
 // ToLower converts a string to lowercase ($toLower).
-func ToLower[T StringTypes](expr T) StringExpr {
+func ToLower[T StringResolver](expr T) StringExpr {
 	return StringExpr{expr: bson.D{{Key: "$toLower", Value: expr}}}
 }
 
 // ToUpper converts a string to uppercase ($toUpper).
-func ToUpper[T StringTypes](expr T) StringExpr {
+func ToUpper[T StringResolver](expr T) StringExpr {
 	return StringExpr{expr: bson.D{{Key: "$toUpper", Value: expr}}}
 }
 
 // Trim removes whitespace or the specified characters from the beginning and end of a string ($trim).
-func Trim[T StringTypes](input T, chars ...Expr) StringExpr {
+func Trim[T StringResolver](input T, chars ...Expr) StringExpr {
 	if len(chars) > 1 {
 		panic("Trim: at most one chars expression may be provided")
 	}
@@ -522,7 +522,7 @@ func Trim[T StringTypes](input T, chars ...Expr) StringExpr {
 
 // Trunc truncates a number to a whole integer or to a specified decimal place ($trunc).
 // When place is omitted the array form is still used: [$number] (equivalent to place 0).
-func Trunc[T NumberTypes](number T, place ...int) NumberExpr {
+func Trunc[T NumberResolver](number T, place ...int) NumberExpr {
 	if len(place) == 0 {
 		return NumberExpr{expr: bson.D{{Key: "$trunc", Value: bson.A{number}}}}
 	}

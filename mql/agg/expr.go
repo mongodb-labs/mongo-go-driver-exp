@@ -4,21 +4,25 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-type ArrayTypes interface {
-	AnyExpr | ArrayExpr | string
-}
-
-type NumberTypes interface {
-	AnyExpr | NumberExpr | string | ~int8 | ~int16 | ~int32 | ~int64 |
-		~int | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uint | ~uintptr |
+type Number interface {
+	~int8 | ~int16 | ~int32 | ~int64 | ~int |
+		~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uint | ~uintptr |
 		~float32 | ~float64
 }
 
-type StringTypes interface {
+type ArrayResolver interface {
+	AnyExpr | ArrayExpr | string
+}
+
+type NumberResolver interface {
+	AnyExpr | NumberExpr | Number | string
+}
+
+type StringResolver interface {
 	AnyExpr | StringExpr | string
 }
 
-type BoolTypes interface {
+type BoolResolver interface {
 	AnyExpr | BoolExpr | bool
 }
 
