@@ -125,6 +125,9 @@ func TestArrayToObject_Example(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
+// TODO: implement TestArrayToObject_ObjectToArray when ObjectToArray
+// operator is implemented
+
 func TestAsin(t *testing.T) {
 	got := agg.Pipeline{
 		agg.AddFieldsStage(
