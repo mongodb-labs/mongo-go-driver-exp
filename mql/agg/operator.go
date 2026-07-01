@@ -200,6 +200,45 @@ func In[U ArrayResolver](expr Expr, array U) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$in", Value: bson.A{expr, array}}}}
 }
 
+// IndexOfOptions specifies optional start and end positions for IndexOfBytes and IndexOfCP.
+// If only End is set, Start defaults to 0.
+type IndexOfOptions struct {
+	Start Expr
+	End   Expr
+}
+
+// IndexOfBytes searches a string for a substring and returns the UTF-8 byte index of the first occurrence, or -1 if not found ($indexOfBytes).
+func IndexOfBytes[T StringResolver, U StringResolver](str T, substring U, opts *IndexOfOptions) NumberExpr {
+	args := bson.A{str, substring}
+	if opts != nil && (opts.Start != nil || opts.End != nil) {
+		start := opts.Start
+		if start == nil {
+			start = 0
+		}
+		args = append(args, start)
+		if opts.End != nil {
+			args = append(args, opts.End)
+		}
+	}
+	return NumberExpr{expr: bson.D{{Key: "$indexOfBytes", Value: args}}}
+}
+
+// IndexOfCP searches a string for a substring and returns the UTF-8 code point index of the first occurrence, or -1 if not found ($indexOfCP).
+func IndexOfCP[T StringResolver, U StringResolver](str T, substring U, opts *IndexOfOptions) NumberExpr {
+	args := bson.A{str, substring}
+	if opts != nil && (opts.Start != nil || opts.End != nil) {
+		start := opts.Start
+		if start == nil {
+			start = 0
+		}
+		args = append(args, start)
+		if opts.End != nil {
+			args = append(args, opts.End)
+		}
+	}
+	return NumberExpr{expr: bson.D{{Key: "$indexOfCP", Value: args}}}
+}
+
 // Ln calculates the natural logarithm of a number ($ln).
 func Ln[T NumberResolver](number T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$ln", Value: number}}}
@@ -223,6 +262,20 @@ func Lt(a Expr, b Expr) BoolExpr {
 // Lte returns true if a is less than or equal to b ($lte).
 func Lte(a Expr, b Expr) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$lte", Value: bson.A{a, b}}}}
+}
+
+// TrimOptions specifies the optional characters to trim for Trim, Ltrim, and Rtrim.
+type TrimOptions struct {
+	Chars Expr
+}
+
+// Ltrim removes whitespace or the specified characters from the beginning of a string ($ltrim).
+func Ltrim[T StringResolver](input T, opts *TrimOptions) StringExpr {
+	args := bson.D{{Key: "input", Value: input}}
+	if opts != nil {
+		args = append(args, bson.E{Key: "chars", Value: opts.Chars})
+	}
+	return StringExpr{expr: bson.D{{Key: "$ltrim", Value: args}}}
 }
 
 // Max returns the maximum value among the given expressions ($max).
@@ -292,6 +345,56 @@ func RadiansToDegrees[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$radiansToDegrees", Value: expr}}}
 }
 
+// RegexOptions specifies the optional regex options string for RegexFind, RegexFindAll, and RegexMatch.
+type RegexOptions struct {
+	Options string
+}
+
+// RegexFind applies a regular expression to a string and returns information on the first matched substring ($regexFind).
+func RegexFind[T StringResolver](input T, regex Expr, opts *RegexOptions) ObjectExpr {
+	args := bson.D{{Key: "input", Value: input}, {Key: "regex", Value: regex}}
+	if opts != nil {
+		args = append(args, bson.E{Key: "options", Value: opts.Options})
+	}
+	return ObjectExpr{expr: bson.D{{Key: "$regexFind", Value: args}}}
+}
+
+// RegexFindAll applies a regular expression to a string and returns information on all matched substrings ($regexFindAll).
+func RegexFindAll[T StringResolver](input T, regex Expr, opts *RegexOptions) ArrayExpr {
+	args := bson.D{{Key: "input", Value: input}, {Key: "regex", Value: regex}}
+	if opts != nil {
+		args = append(args, bson.E{Key: "options", Value: opts.Options})
+	}
+	return ArrayExpr{expr: bson.D{{Key: "$regexFindAll", Value: args}}}
+}
+
+// RegexMatch applies a regular expression to a string and returns true if a match is found ($regexMatch).
+func RegexMatch[T StringResolver](input T, regex Expr, opts *RegexOptions) BoolExpr {
+	args := bson.D{{Key: "input", Value: input}, {Key: "regex", Value: regex}}
+	if opts != nil {
+		args = append(args, bson.E{Key: "options", Value: opts.Options})
+	}
+	return BoolExpr{expr: bson.D{{Key: "$regexMatch", Value: args}}}
+}
+
+// ReplaceAll replaces all instances of a search string in an input string with a replacement string ($replaceAll).
+func ReplaceAll[T StringResolver, R StringResolver](input T, find Expr, replacement R) StringExpr {
+	return StringExpr{expr: bson.D{{Key: "$replaceAll", Value: bson.D{
+		{Key: "input", Value: input},
+		{Key: "find", Value: find},
+		{Key: "replacement", Value: replacement},
+	}}}}
+}
+
+// ReplaceOne replaces the first instance of a matched string in a given input ($replaceOne).
+func ReplaceOne[T StringResolver, R StringResolver](input T, find Expr, replacement R) StringExpr {
+	return StringExpr{expr: bson.D{{Key: "$replaceOne", Value: bson.D{
+		{Key: "input", Value: input},
+		{Key: "find", Value: find},
+		{Key: "replacement", Value: replacement},
+	}}}}
+}
+
 // Round rounds a number to a whole integer or to a specified decimal place ($round).
 // When place is omitted the array form is still used: [$number] (equivalent to place 0).
 func Round[T NumberResolver](number T, place ...int) NumberExpr {
@@ -299,6 +402,15 @@ func Round[T NumberResolver](number T, place ...int) NumberExpr {
 		return NumberExpr{expr: bson.D{{Key: "$round", Value: bson.A{number}}}}
 	}
 	return NumberExpr{expr: bson.D{{Key: "$round", Value: bson.A{number, place[0]}}}}
+}
+
+// Rtrim removes whitespace characters or the specified characters from the end of a string ($rtrim).
+func Rtrim[T StringResolver](input T, opts *TrimOptions) StringExpr {
+	args := bson.D{{Key: "input", Value: input}}
+	if opts != nil {
+		args = append(args, bson.E{Key: "chars", Value: opts.Chars})
+	}
+	return StringExpr{expr: bson.D{{Key: "$rtrim", Value: args}}}
 }
 
 // Sigmoid returns 1 / (1 + e^(-x)) ($sigmoid).
@@ -316,6 +428,11 @@ func Sinh[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$sinh", Value: expr}}}
 }
 
+// Split splits a string into substrings based on a delimiter and returns an array of substrings ($split).
+func Split[T StringResolver](str T, delimiter Expr) ArrayExpr {
+	return ArrayExpr{expr: bson.D{{Key: "$split", Value: bson.A{str, delimiter}}}}
+}
+
 // Sqrt calculates the square root of a number ($sqrt).
 func Sqrt[T NumberResolver](number T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$sqrt", Value: number}}}
@@ -329,6 +446,36 @@ func StdDevPop(exprs ...Expr) NumberExpr {
 // StdDevSamp calculates the sample standard deviation of numeric expressions ($stdDevSamp).
 func StdDevSamp(exprs ...Expr) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$stdDevSamp", Value: exprs}}}
+}
+
+// Strcasecmp performs case-insensitive string comparison and returns 0 if equivalent, 1 if the first is greater, and -1 if less ($strcasecmp).
+func Strcasecmp[T StringResolver, U StringResolver](expr1 T, expr2 U) NumberExpr {
+	return NumberExpr{expr: bson.D{{Key: "$strcasecmp", Value: bson.A{expr1, expr2}}}}
+}
+
+// StrLenBytes returns the number of UTF-8 encoded bytes in a string ($strLenBytes).
+func StrLenBytes[T StringResolver](expr T) NumberExpr {
+	return NumberExpr{expr: bson.D{{Key: "$strLenBytes", Value: expr}}}
+}
+
+// StrLenCP returns the number of UTF-8 code points in a string ($strLenCP).
+func StrLenCP[T StringResolver](expr T) NumberExpr {
+	return NumberExpr{expr: bson.D{{Key: "$strLenCP", Value: expr}}}
+}
+
+// Substr returns a substring of a string. Deprecated; use SubstrBytes or SubstrCP ($substr).
+func Substr[T StringResolver, U NumberResolver, V NumberResolver](str T, start U, length V) StringExpr {
+	return StringExpr{expr: bson.D{{Key: "$substr", Value: bson.A{str, start, length}}}}
+}
+
+// SubstrBytes returns the substring of a string starting at the specified UTF-8 byte index for the specified number of bytes ($substrBytes).
+func SubstrBytes[T StringResolver, U NumberResolver, V NumberResolver](str T, start U, length V) StringExpr {
+	return StringExpr{expr: bson.D{{Key: "$substrBytes", Value: bson.A{str, start, length}}}}
+}
+
+// SubstrCP returns the substring of a string starting at the specified UTF-8 code point index for the specified number of code points ($substrCP).
+func SubstrCP[T StringResolver, U NumberResolver, V NumberResolver](str T, start U, length V) StringExpr {
+	return StringExpr{expr: bson.D{{Key: "$substrCP", Value: bson.A{str, start, length}}}}
 }
 
 // Subtract returns a minus b ($subtract).
@@ -351,6 +498,25 @@ func Tan[T NumberResolver](expr T) NumberExpr {
 // Tanh returns the hyperbolic tangent of a value in radians ($tanh).
 func Tanh[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$tanh", Value: expr}}}
+}
+
+// ToLower converts a string to lowercase ($toLower).
+func ToLower[T StringResolver](expr T) StringExpr {
+	return StringExpr{expr: bson.D{{Key: "$toLower", Value: expr}}}
+}
+
+// ToUpper converts a string to uppercase ($toUpper).
+func ToUpper[T StringResolver](expr T) StringExpr {
+	return StringExpr{expr: bson.D{{Key: "$toUpper", Value: expr}}}
+}
+
+// Trim removes whitespace or the specified characters from the beginning and end of a string ($trim).
+func Trim[T StringResolver](input T, opts *TrimOptions) StringExpr {
+	args := bson.D{{Key: "input", Value: input}}
+	if opts != nil {
+		args = append(args, bson.E{Key: "chars", Value: opts.Chars})
+	}
+	return StringExpr{expr: bson.D{{Key: "$trim", Value: args}}}
 }
 
 // Trunc truncates a number to a whole integer or to a specified decimal place ($trunc).
