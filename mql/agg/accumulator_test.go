@@ -11,9 +11,6 @@ import (
 // --- $accumulator ---
 
 func TestCustomAccumulator_ImplementAvgOperator(t *testing.T) {
-	finalize := `function(state) {
-    return (state.sum / state.count)
-}`
 	got := agg.Pipeline{
 		agg.GroupStage(
 			"$author",
@@ -32,9 +29,11 @@ func TestCustomAccumulator_ImplementAvgOperator(t *testing.T) {
         sum: state1.sum + state2.sum
     }
 }`,
-					"js",
-					nil,
-					&finalize,
+					&agg.CustomAccumulatorOptions{
+						Finalize: `function(state) {
+    return (state.sum / state.count)
+}`,
+					},
 				),
 			),
 		),
@@ -56,9 +55,6 @@ func TestCustomAccumulator_ImplementAvgOperator(t *testing.T) {
 }
 
 func TestCustomAccumulator_VaryInitialStateByGroup(t *testing.T) {
-	finalize := `function(state) {
-    return state.restaurants
-}`
 	got := agg.Pipeline{
 		agg.GroupStage(
 			bson.D{{Key: "city", Value: "$city"}},
@@ -80,9 +76,12 @@ func TestCustomAccumulator_VaryInitialStateByGroup(t *testing.T) {
         restaurants: state1.restaurants.concat(state2.restaurants).slice(0, state1.max)
     }
 }`,
-					"js",
-					[]any{"$city", "Bettles"},
-					&finalize,
+					&agg.CustomAccumulatorOptions{
+						InitArgs: []any{"$city", "Bettles"},
+						Finalize: `function(state) {
+    return state.restaurants
+}`,
+					},
 				),
 			),
 		),
