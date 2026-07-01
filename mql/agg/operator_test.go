@@ -850,7 +850,7 @@ func TestLtrim(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
 			agg.Include("item"),
-			agg.Compute("description", agg.Ltrim("$description")),
+			agg.Compute("description", agg.Ltrim("$description", nil)),
 		),
 	}
 	want := bson.A{
@@ -1039,7 +1039,7 @@ func TestRadiansToDegrees(t *testing.T) {
 func TestRegexFind_AndItsOptions(t *testing.T) {
 	got := agg.Pipeline{
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFind("$description", bson.Regex{Pattern: "line"})),
+			agg.Assign("returnObject", agg.RegexFind("$description", bson.Regex{Pattern: "line"}, nil)),
 		),
 	}
 	want := bson.A{
@@ -1055,8 +1055,17 @@ func TestRegexFind_AndItsOptions(t *testing.T) {
 
 func TestRegexFind_IOption(t *testing.T) {
 	got := agg.Pipeline{
+		// Specify i as part of the Regex type
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFind("$description", bson.Regex{Pattern: "line", Options: "i"})),
+			agg.Assign("returnObject", agg.RegexFind("$description", bson.Regex{Pattern: "line", Options: "i"}, nil)),
+		),
+		// Specify i in the options field
+		agg.AddFieldsStage(
+			agg.Assign("returnObject", agg.RegexFind("$description", "line", &agg.RegexOptions{Options: "i"})),
+		),
+		// Mix Regex type with options field
+		agg.AddFieldsStage(
+			agg.Assign("returnObject", agg.RegexFind("$description", bson.Regex{Pattern: "line"}, &agg.RegexOptions{Options: "i"})),
 		),
 	}
 	want := bson.A{
@@ -1066,6 +1075,20 @@ func TestRegexFind_IOption(t *testing.T) {
 				{Key: "regex", Value: bson.Regex{Pattern: "line", Options: "i"}},
 			}}}},
 		}}},
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "returnObject", Value: bson.D{{Key: "$regexFind", Value: bson.D{
+				{Key: "input", Value: "$description"},
+				{Key: "regex", Value: "line"},
+				{Key: "options", Value: "i"},
+			}}}},
+		}}},
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "returnObject", Value: bson.D{{Key: "$regexFind", Value: bson.D{
+				{Key: "input", Value: "$description"},
+				{Key: "regex", Value: bson.Regex{Pattern: "line"}},
+				{Key: "options", Value: "i"},
+			}}}},
+		}}},
 	}
 	assertPipelineEqual(t, got, want)
 }
@@ -1073,7 +1096,7 @@ func TestRegexFind_IOption(t *testing.T) {
 func TestRegexFindAll_AndItsOptions(t *testing.T) {
 	got := agg.Pipeline{
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFindAll("$description", bson.Regex{Pattern: "line"})),
+			agg.Assign("returnObject", agg.RegexFindAll("$description", bson.Regex{Pattern: "line"}, nil)),
 		),
 	}
 	want := bson.A{
@@ -1089,8 +1112,17 @@ func TestRegexFindAll_AndItsOptions(t *testing.T) {
 
 func TestRegexFindAll_IOption(t *testing.T) {
 	got := agg.Pipeline{
+		// Specify i as part of the regex type
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFindAll("$description", bson.Regex{Pattern: "line", Options: "i"})),
+			agg.Assign("returnObject", agg.RegexFindAll("$description", bson.Regex{Pattern: "line", Options: "i"}, nil)),
+		),
+		// Specify i in the options field
+		agg.AddFieldsStage(
+			agg.Assign("returnObject", agg.RegexFindAll("$description", "line", &agg.RegexOptions{Options: "i"})),
+		),
+		// Mix Regex type with options field
+		agg.AddFieldsStage(
+			agg.Assign("returnObject", agg.RegexFindAll("$description", bson.Regex{Pattern: "line"}, &agg.RegexOptions{Options: "i"})),
 		),
 	}
 	want := bson.A{
@@ -1098,6 +1130,20 @@ func TestRegexFindAll_IOption(t *testing.T) {
 			{Key: "returnObject", Value: bson.D{{Key: "$regexFindAll", Value: bson.D{
 				{Key: "input", Value: "$description"},
 				{Key: "regex", Value: bson.Regex{Pattern: "line", Options: "i"}},
+			}}}},
+		}}},
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "returnObject", Value: bson.D{{Key: "$regexFindAll", Value: bson.D{
+				{Key: "input", Value: "$description"},
+				{Key: "regex", Value: "line"},
+				{Key: "options", Value: "i"},
+			}}}},
+		}}},
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "returnObject", Value: bson.D{{Key: "$regexFindAll", Value: bson.D{
+				{Key: "input", Value: "$description"},
+				{Key: "regex", Value: bson.Regex{Pattern: "line"}},
+				{Key: "options", Value: "i"},
 			}}}},
 		}}},
 	}
@@ -1108,7 +1154,7 @@ func TestRegexFindAll_ParseEmailFromString(t *testing.T) {
 	got := agg.Pipeline{
 		agg.AddFieldsStage(
 			agg.Assign("email", agg.RegexFindAll("$comment", bson.Regex{
-				Pattern: `[a-z0-9_.+-]+@[a-z0-9_.+-]+\.[a-z0-9_.+-]+`, Options: "i"})),
+				Pattern: `[a-z0-9_.+-]+@[a-z0-9_.+-]+\.[a-z0-9_.+-]+`, Options: "i"}, nil)),
 		),
 		agg.SetStage(agg.Assign("email", "$email.match")),
 	}
@@ -1131,7 +1177,7 @@ func TestRegexFindAll_ParseEmailFromString(t *testing.T) {
 func TestRegexFindMatch_AndItsOptions(t *testing.T) {
 	got := agg.Pipeline{
 		agg.AddFieldsStage(
-			agg.Assign("result", agg.RegexMatch("$description", bson.Regex{Pattern: "line"})),
+			agg.Assign("result", agg.RegexMatch("$description", bson.Regex{Pattern: "line"}, nil)),
 		),
 	}
 	want := bson.A{
@@ -1147,8 +1193,17 @@ func TestRegexFindMatch_AndItsOptions(t *testing.T) {
 
 func TestRegexMatch_IOption(t *testing.T) {
 	got := agg.Pipeline{
+		// Specify i as part of the Regex type
 		agg.AddFieldsStage(
-			agg.Assign("result", agg.RegexMatch("$description", bson.Regex{Pattern: "line", Options: "i"})),
+			agg.Assign("result", agg.RegexMatch("$description", bson.Regex{Pattern: "line", Options: "i"}, nil)),
+		),
+		// Specify i in the options field
+		agg.AddFieldsStage(
+			agg.Assign("result", agg.RegexMatch("$description", "line", &agg.RegexOptions{Options: "i"})),
+		),
+		// Mix Regex type with options field
+		agg.AddFieldsStage(
+			agg.Assign("result", agg.RegexMatch("$description", bson.Regex{Pattern: "line"}, &agg.RegexOptions{Options: "i"})),
 		),
 	}
 	want := bson.A{
@@ -1156,6 +1211,20 @@ func TestRegexMatch_IOption(t *testing.T) {
 			{Key: "result", Value: bson.D{{Key: "$regexMatch", Value: bson.D{
 				{Key: "input", Value: "$description"},
 				{Key: "regex", Value: bson.Regex{Pattern: "line", Options: "i"}},
+			}}}},
+		}}},
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "result", Value: bson.D{{Key: "$regexMatch", Value: bson.D{
+				{Key: "input", Value: "$description"},
+				{Key: "regex", Value: "line"},
+				{Key: "options", Value: "i"},
+			}}}},
+		}}},
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "result", Value: bson.D{{Key: "$regexMatch", Value: bson.D{
+				{Key: "input", Value: "$description"},
+				{Key: "regex", Value: bson.Regex{Pattern: "line"}},
+				{Key: "options", Value: "i"},
 			}}}},
 		}}},
 	}
@@ -1256,7 +1325,7 @@ func TestRtrim(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
 			agg.Include("item"),
-			agg.Compute("description", agg.Rtrim("$description")),
+			agg.Compute("description", agg.Rtrim("$description", nil)),
 		),
 	}
 	want := bson.A{
@@ -1637,7 +1706,7 @@ func TestTrim(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
 			agg.Include("item"),
-			agg.Compute("description", agg.Trim("$description")),
+			agg.Compute("description", agg.Trim("$description", nil)),
 		),
 	}
 	want := bson.A{

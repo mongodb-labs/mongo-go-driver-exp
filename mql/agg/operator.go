@@ -201,8 +201,7 @@ func In[U ArrayResolver](expr Expr, array U) BoolExpr {
 }
 
 // IndexOfOptions specifies optional start and end positions for IndexOfBytes and IndexOfCP.
-// Set Start to restrict the search to begin at a byte/code-point offset.
-// Set End to restrict where the search ends (only meaningful when Start is also set).
+// If only End is set, Start defaults to 0.
 type IndexOfOptions struct {
 	Start Expr
 	End   Expr
@@ -211,8 +210,12 @@ type IndexOfOptions struct {
 // IndexOfBytes searches a string for a substring and returns the UTF-8 byte index of the first occurrence, or -1 if not found ($indexOfBytes).
 func IndexOfBytes[T StringResolver, U StringResolver](str T, substring U, opts *IndexOfOptions) NumberExpr {
 	args := bson.A{str, substring}
-	if opts != nil && opts.Start != nil {
-		args = append(args, opts.Start)
+	if opts != nil && (opts.Start != nil || opts.End != nil) {
+		start := opts.Start
+		if start == nil {
+			start = 0
+		}
+		args = append(args, start)
 		if opts.End != nil {
 			args = append(args, opts.End)
 		}
@@ -223,8 +226,12 @@ func IndexOfBytes[T StringResolver, U StringResolver](str T, substring U, opts *
 // IndexOfCP searches a string for a substring and returns the UTF-8 code point index of the first occurrence, or -1 if not found ($indexOfCP).
 func IndexOfCP[T StringResolver, U StringResolver](str T, substring U, opts *IndexOfOptions) NumberExpr {
 	args := bson.A{str, substring}
-	if opts != nil && opts.Start != nil {
-		args = append(args, opts.Start)
+	if opts != nil && (opts.Start != nil || opts.End != nil) {
+		start := opts.Start
+		if start == nil {
+			start = 0
+		}
+		args = append(args, start)
 		if opts.End != nil {
 			args = append(args, opts.End)
 		}
@@ -257,14 +264,16 @@ func Lte(a Expr, b Expr) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$lte", Value: bson.A{a, b}}}}
 }
 
+// TrimOptions specifies the optional characters to trim for Trim, Ltrim, and Rtrim.
+type TrimOptions struct {
+	Chars Expr
+}
+
 // Ltrim removes whitespace or the specified characters from the beginning of a string ($ltrim).
-func Ltrim[T StringResolver](input T, chars ...Expr) StringExpr {
-	if len(chars) > 1 {
-		panic("Ltrim: at most one chars expression may be provided")
-	}
+func Ltrim[T StringResolver](input T, opts *TrimOptions) StringExpr {
 	args := bson.D{{Key: "input", Value: input}}
-	if len(chars) == 1 {
-		args = append(args, bson.E{Key: "chars", Value: chars[0]})
+	if opts != nil {
+		args = append(args, bson.E{Key: "chars", Value: opts.Chars})
 	}
 	return StringExpr{expr: bson.D{{Key: "$ltrim", Value: args}}}
 }
@@ -336,44 +345,40 @@ func RadiansToDegrees[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$radiansToDegrees", Value: expr}}}
 }
 
+// RegexOptions specifies the optional regex options string for RegexFind, RegexFindAll, and RegexMatch.
+type RegexOptions struct {
+	Options string
+}
+
 // RegexFind applies a regular expression to a string and returns information on the first matched substring ($regexFind).
-func RegexFind[T StringResolver](input T, regex Expr, options ...string) ObjectExpr {
-	if len(options) > 1 {
-		panic("RegexFind: at most one options string may be provided")
-	}
+func RegexFind[T StringResolver](input T, regex Expr, opts *RegexOptions) ObjectExpr {
 	args := bson.D{{Key: "input", Value: input}, {Key: "regex", Value: regex}}
-	if len(options) == 1 {
-		args = append(args, bson.E{Key: "options", Value: options[0]})
+	if opts != nil {
+		args = append(args, bson.E{Key: "options", Value: opts.Options})
 	}
 	return ObjectExpr{expr: bson.D{{Key: "$regexFind", Value: args}}}
 }
 
 // RegexFindAll applies a regular expression to a string and returns information on all matched substrings ($regexFindAll).
-func RegexFindAll[T StringResolver](input T, regex Expr, options ...string) ArrayExpr {
-	if len(options) > 1 {
-		panic("RegexFindAll: at most one options string may be provided")
-	}
+func RegexFindAll[T StringResolver](input T, regex Expr, opts *RegexOptions) ArrayExpr {
 	args := bson.D{{Key: "input", Value: input}, {Key: "regex", Value: regex}}
-	if len(options) == 1 {
-		args = append(args, bson.E{Key: "options", Value: options[0]})
+	if opts != nil {
+		args = append(args, bson.E{Key: "options", Value: opts.Options})
 	}
 	return ArrayExpr{expr: bson.D{{Key: "$regexFindAll", Value: args}}}
 }
 
 // RegexMatch applies a regular expression to a string and returns true if a match is found ($regexMatch).
-func RegexMatch[T StringResolver](input T, regex Expr, options ...string) BoolExpr {
-	if len(options) > 1 {
-		panic("RegexMatch: at most one options string may be provided")
-	}
+func RegexMatch[T StringResolver](input T, regex Expr, opts *RegexOptions) BoolExpr {
 	args := bson.D{{Key: "input", Value: input}, {Key: "regex", Value: regex}}
-	if len(options) == 1 {
-		args = append(args, bson.E{Key: "options", Value: options[0]})
+	if opts != nil {
+		args = append(args, bson.E{Key: "options", Value: opts.Options})
 	}
 	return BoolExpr{expr: bson.D{{Key: "$regexMatch", Value: args}}}
 }
 
 // ReplaceAll replaces all instances of a search string in an input string with a replacement string ($replaceAll).
-func ReplaceAll(input Expr, find Expr, replacement Expr) StringExpr {
+func ReplaceAll[T StringResolver, R StringResolver](input T, find Expr, replacement R) StringExpr {
 	return StringExpr{expr: bson.D{{Key: "$replaceAll", Value: bson.D{
 		{Key: "input", Value: input},
 		{Key: "find", Value: find},
@@ -382,7 +387,7 @@ func ReplaceAll(input Expr, find Expr, replacement Expr) StringExpr {
 }
 
 // ReplaceOne replaces the first instance of a matched string in a given input ($replaceOne).
-func ReplaceOne(input Expr, find Expr, replacement Expr) StringExpr {
+func ReplaceOne[T StringResolver, R StringResolver](input T, find Expr, replacement R) StringExpr {
 	return StringExpr{expr: bson.D{{Key: "$replaceOne", Value: bson.D{
 		{Key: "input", Value: input},
 		{Key: "find", Value: find},
@@ -400,13 +405,10 @@ func Round[T NumberResolver](number T, place ...int) NumberExpr {
 }
 
 // Rtrim removes whitespace characters or the specified characters from the end of a string ($rtrim).
-func Rtrim[T StringResolver](input T, chars ...Expr) StringExpr {
-	if len(chars) > 1 {
-		panic("Rtrim: at most one chars expression may be provided")
-	}
+func Rtrim[T StringResolver](input T, opts *TrimOptions) StringExpr {
 	args := bson.D{{Key: "input", Value: input}}
-	if len(chars) == 1 {
-		args = append(args, bson.E{Key: "chars", Value: chars[0]})
+	if opts != nil {
+		args = append(args, bson.E{Key: "chars", Value: opts.Chars})
 	}
 	return StringExpr{expr: bson.D{{Key: "$rtrim", Value: args}}}
 }
@@ -509,13 +511,10 @@ func ToUpper[T StringResolver](expr T) StringExpr {
 }
 
 // Trim removes whitespace or the specified characters from the beginning and end of a string ($trim).
-func Trim[T StringResolver](input T, chars ...Expr) StringExpr {
-	if len(chars) > 1 {
-		panic("Trim: at most one chars expression may be provided")
-	}
+func Trim[T StringResolver](input T, opts *TrimOptions) StringExpr {
 	args := bson.D{{Key: "input", Value: input}}
-	if len(chars) == 1 {
-		args = append(args, bson.E{Key: "chars", Value: chars[0]})
+	if opts != nil {
+		args = append(args, bson.E{Key: "chars", Value: opts.Chars})
 	}
 	return StringExpr{expr: bson.D{{Key: "$trim", Value: args}}}
 }
