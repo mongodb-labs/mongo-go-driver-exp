@@ -275,19 +275,17 @@ func In[U ArrayResolver](expr Expr, array U) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$in", Value: bson.A{expr, array}}}}
 }
 
-type IndexOfOptions struct {
-	Start Expr
-	End   Expr
-}
-
 // IndexOfArray searches an array for a value and returns the index of the first occurrence ($indexOfArray).
 // Optionally provide start and end index bounds via IndexOfOptions.
-func IndexOfArray[T ArrayResolver](array T, search Expr, opts *IndexOfOptions) NumberExpr {
+func IndexOfArray[T ArrayResolver](array T, search Expr, start Expr, end Expr) NumberExpr {
 	args := bson.A{array, search}
-	if opts != nil && opts.Start != nil {
-		args = append(args, opts.Start)
-		if opts.End != nil {
-			args = append(args, opts.End)
+	if start != nil || end != nil {
+		if start == nil {
+			start = 0
+		}
+		args = append(args, start)
+		if end != nil {
+			args = append(args, end)
 		}
 	}
 	return NumberExpr{expr: bson.D{{Key: "$indexOfArray", Value: args}}}
@@ -351,8 +349,8 @@ func Max(value Expr, values ...Expr) AnyExpr {
 // See MaxNAccumulator for the $group/$setWindowFields accumulator form.
 func MaxN[T ArrayResolver](n Expr, input T) ArrayExpr {
 	return ArrayExpr{expr: bson.D{{Key: "$maxN", Value: bson.D{
-		{Key: "input", Value: input},
 		{Key: "n", Value: n},
+		{Key: "input", Value: input},
 	}}}}
 }
 
@@ -372,8 +370,8 @@ func Min(value Expr, values ...Expr) AnyExpr {
 // See MinNAccumulator for the $group/$setWindowFields accumulator form.
 func MinN[T ArrayResolver](n Expr, input T) ArrayExpr {
 	return ArrayExpr{expr: bson.D{{Key: "$minN", Value: bson.D{
-		{Key: "input", Value: input},
 		{Key: "n", Value: n},
+		{Key: "input", Value: input},
 	}}}}
 }
 
@@ -505,9 +503,9 @@ func Size[T ArrayResolver](expr T) NumberExpr {
 
 // Slice returns n elements of an array ($slice).
 // Pass a non-nil start to specify a starting index; otherwise elements are taken from the beginning.
-func Slice[T ArrayResolver](expression T, n Expr, start *Expr) ArrayExpr {
+func Slice[T ArrayResolver](expression T, n Expr, start Expr) ArrayExpr {
 	if start != nil {
-		return ArrayExpr{expr: bson.D{{Key: "$slice", Value: bson.A{expression, *start, n}}}}
+		return ArrayExpr{expr: bson.D{{Key: "$slice", Value: bson.A{expression, start, n}}}}
 	}
 	return ArrayExpr{expr: bson.D{{Key: "$slice", Value: bson.A{expression, n}}}}
 }
@@ -618,7 +616,7 @@ func Trunc[T NumberResolver](number T, place ...int) NumberExpr {
 // When useLongestLength is true, the output length is determined by the longest input array;
 // pass default values for shorter arrays via defaults. When useLongestLength is false (default),
 // the output length is the shortest input array and defaults must be empty.
-func Zip[T ArrayResolver](inputs T, useLongestLength bool, defaults ...Expr) ArrayExpr {
+func Zip(inputs Expr, useLongestLength bool, defaults ...Expr) ArrayExpr {
 	doc := bson.D{{Key: "inputs", Value: inputs}}
 	if useLongestLength {
 		doc = append(doc, bson.E{Key: "useLongestLength", Value: true})

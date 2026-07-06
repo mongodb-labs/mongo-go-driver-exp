@@ -84,6 +84,24 @@ func TestAdd_AddNumbers(t *testing.T) {
 
 // TODO: implement TestAdd_PerformAdditionOnDate when date functionality is implemented
 
+func TestAllElementsTrue(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Include("responses"),
+			agg.Compute("isAllTrue", agg.AllElementsTrue("$responses")),
+			agg.Exclude("_id"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "responses", Value: 1},
+			{Key: "isAllTrue", Value: bson.D{{Key: "$allElementsTrue", Value: bson.A{"$responses"}}}},
+			{Key: "_id", Value: 0},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
 func TestAnd(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
@@ -102,6 +120,42 @@ func TestAnd(t *testing.T) {
 					bson.D{{Key: "$lt", Value: bson.A{"$qty", 250}}},
 				}},
 			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestAnyElementTrue(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Include("responses"),
+			agg.Compute("isAllTrue", agg.AnyElementTrue("$responses")),
+			agg.Include("_id"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "responses", Value: 1},
+			{Key: "isAllTrue", Value: bson.D{{Key: "$anyElementTrue", Value: bson.A{"$responses"}}}},
+			{Key: "_id", Value: 1},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestArrayElemAt(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Include("name"),
+			agg.Compute("first", agg.ArrayElemAt("$favorites", 0)),
+			agg.Compute("last", agg.ArrayElemAt("$favorites", -1)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "name", Value: 1},
+			{Key: "first", Value: bson.D{{Key: "$arrayElemAt", Value: bson.A{"$favorites", 0}}}},
+			{Key: "last", Value: bson.D{{Key: "$arrayElemAt", Value: bson.A{"$favorites", -1}}}},
 		}}},
 	}
 	assertPipelineEqual(t, got, want)
@@ -336,40 +390,47 @@ func TestBitXor(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestCos(t *testing.T) {
+func TestBottom(t *testing.T) {
 	got := agg.Pipeline{
-		agg.AddFieldsStage(
-			agg.Assign("side_a", agg.Multiply(agg.Cos(agg.DegreesToRadians("$angle_a")), "$hypotenuse")),
+		agg.ProjectStage(
+			agg.Compute("bottomScore", agg.Bottom(
+				"$results",
+				[]any{"$playerId", "$score"},
+				agg.Sort("score", agg.Desc),
+			)),
 		),
 	}
 	want := bson.A{
-		bson.D{{Key: "$addFields", Value: bson.D{
-			{Key: "side_a", Value: bson.D{
-				{Key: "$multiply", Value: bson.A{
-					bson.D{{Key: "$cos", Value: bson.D{
-						{Key: "$degreesToRadians", Value: "$angle_a"},
-					}}},
-					"$hypotenuse",
-				}},
-			}},
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "bottomScore", Value: bson.D{{Key: "$bottom", Value: bson.D{
+				{Key: "sortBy", Value: bson.D{{Key: "score", Value: -1}}},
+				{Key: "output", Value: bson.A{"$playerId", "$score"}},
+				{Key: "input", Value: "$results"},
+			}}}},
 		}}},
 	}
 	assertPipelineEqual(t, got, want)
 }
 
-func TestCosh(t *testing.T) {
+func TestBottomN(t *testing.T) {
 	got := agg.Pipeline{
-		agg.AddFieldsStage(
-			agg.Assign("cosh_output", agg.Cosh(agg.DegreesToRadians("$angle"))),
+		agg.ProjectStage(
+			agg.Compute("bottomScores", agg.BottomN(
+				3,
+				"$results",
+				[]any{"$playerId", "$score"},
+				agg.Sort("score", agg.Desc),
+			)),
 		),
 	}
 	want := bson.A{
-		bson.D{{Key: "$addFields", Value: bson.D{
-			{Key: "cosh_output", Value: bson.D{
-				{Key: "$cosh", Value: bson.D{
-					{Key: "$degreesToRadians", Value: "$angle"},
-				}},
-			}},
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "bottomScores", Value: bson.D{{Key: "$bottomN", Value: bson.D{
+				{Key: "n", Value: 3},
+				{Key: "sortBy", Value: bson.D{{Key: "score", Value: -1}}},
+				{Key: "output", Value: []any{"$playerId", "$score"}},
+				{Key: "input", Value: "$results"},
+			}}}},
 		}}},
 	}
 	assertPipelineEqual(t, got, want)
@@ -410,6 +471,75 @@ func TestCmp(t *testing.T) {
 				{Key: "$cmp", Value: bson.A{"$qty", 250}},
 			}},
 			{Key: "_id", Value: 0},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestConcat(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("itemDescription", agg.Concat("$item", " - ", "$description")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "itemDescription", Value: bson.D{
+				{Key: "$concat", Value: bson.A{"$item", " - ", "$description"}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestConcatArrays(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("items", agg.ConcatArrays("$instock", "$ordered")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "items", Value: bson.D{{Key: "$concatArrays", Value: bson.A{"$instock", "$ordered"}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestCos(t *testing.T) {
+	got := agg.Pipeline{
+		agg.AddFieldsStage(
+			agg.Assign("side_a", agg.Multiply(agg.Cos(agg.DegreesToRadians("$angle_a")), "$hypotenuse")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "side_a", Value: bson.D{
+				{Key: "$multiply", Value: bson.A{
+					bson.D{{Key: "$cos", Value: bson.D{
+						{Key: "$degreesToRadians", Value: "$angle_a"},
+					}}},
+					"$hypotenuse",
+				}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestCosh(t *testing.T) {
+	got := agg.Pipeline{
+		agg.AddFieldsStage(
+			agg.Assign("cosh_output", agg.Cosh(agg.DegreesToRadians("$angle"))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "cosh_output", Value: bson.D{
+				{Key: "$cosh", Value: bson.D{
+					{Key: "$degreesToRadians", Value: "$angle"},
+				}},
+			}},
 		}}},
 	}
 	assertPipelineEqual(t, got, want)
@@ -560,6 +690,37 @@ func TestFilterArray_LimitGreaterThanPossibleMatches(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
+func TestFirst(t *testing.T) {
+	got := agg.Pipeline{
+		agg.AddFieldsStage(
+			agg.Assign("firstItem", agg.First("$items")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "firstItem", Value: bson.D{{Key: "$first", Value: "$items"}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestFirstN(t *testing.T) {
+	got := agg.Pipeline{
+		agg.AddFieldsStage(
+			agg.Assign("firstScores", agg.FirstN(3, "$score")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "firstScores", Value: bson.D{{Key: "$firstN", Value: bson.D{
+				{Key: "n", Value: 3},
+				{Key: "input", Value: "$score"},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
 func TestFloor(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
@@ -704,6 +865,93 @@ func TestIn(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
+func TestIndexOfArray_Example(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("index", agg.IndexOfArray("$items", 2, nil, nil)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "index", Value: bson.D{{Key: "$indexOfArray", Value: bson.A{"$items", 2}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestIndexOfArray_StartOption(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("index", agg.IndexOfArray("$items", 2, 1, nil)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "index", Value: bson.D{{Key: "$indexOfArray", Value: bson.A{"$items", 2, 1}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestIndexOfArray_EndOption(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("index", agg.IndexOfArray("$items", 2, nil, 4)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "index", Value: bson.D{{Key: "$indexOfArray", Value: bson.A{"$items", 2, 0, 4}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestIndexOfArray_StartAndEndOption(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("index", agg.IndexOfArray("$items", 2, 1, 4)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "index", Value: bson.D{{Key: "$indexOfArray", Value: bson.A{"$items", 2, 1, 4}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestLast(t *testing.T) {
+	got := agg.Pipeline{
+		agg.AddFieldsStage(
+			agg.Assign("lastItem", agg.Last("$items")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "lastItem", Value: bson.D{{Key: "$last", Value: "$items"}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestLastN(t *testing.T) {
+	got := agg.Pipeline{
+		agg.AddFieldsStage(
+			agg.Assign("lastScores", agg.LastN(3, "$score")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "lastScores", Value: bson.D{{Key: "$lastN", Value: bson.D{
+				{Key: "n", Value: 3},
+				{Key: "input", Value: "$score"},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
 func TestLn(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
@@ -818,6 +1066,23 @@ func TestMax(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
+func TestMaxN(t *testing.T) {
+	got := agg.Pipeline{
+		agg.AddFieldsStage(
+			agg.Assign("maxScores", agg.MaxN(2, "$score")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "maxScores", Value: bson.D{{Key: "$maxN", Value: bson.D{
+				{Key: "n", Value: 2},
+				{Key: "input", Value: "$score"},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
 func TestMin(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
@@ -831,6 +1096,23 @@ func TestMin(t *testing.T) {
 			{Key: "quizMin", Value: bson.D{{Key: "$min", Value: bson.A{"$quizzes"}}}},
 			{Key: "labMin", Value: bson.D{{Key: "$min", Value: bson.A{"$labs"}}}},
 			{Key: "examMin", Value: bson.D{{Key: "$min", Value: bson.A{"$final", "$midterm"}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestMinN(t *testing.T) {
+	got := agg.Pipeline{
+		agg.AddFieldsStage(
+			agg.Assign("minScores", agg.MinN(2, "$score")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "minScores", Value: bson.D{{Key: "$minN", Value: bson.D{
+				{Key: "n", Value: 2},
+				{Key: "input", Value: "$score"},
+			}}}},
 		}}},
 	}
 	assertPipelineEqual(t, got, want)
@@ -972,6 +1254,41 @@ func TestRadiansToDegrees(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
+func TestRange(t *testing.T) {
+	step := 25
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Exclude("_id"),
+			agg.Include("city"),
+			agg.Compute("Rest stops", agg.Range(0, "$distance", &step)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "city", Value: 1},
+			{Key: "Rest stops", Value: bson.D{{Key: "$range", Value: bson.A{0, "$distance", 25}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestReverseArray(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Include("name"),
+			agg.Compute("reverseFavorites", agg.ReverseArray("$favorites")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "name", Value: 1},
+			{Key: "reverseFavorites", Value: bson.D{{Key: "$reverseArray", Value: "$favorites"}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
 func TestRound(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
@@ -983,6 +1300,108 @@ func TestRound(t *testing.T) {
 			{Key: "roundedValue", Value: bson.D{
 				{Key: "$round", Value: bson.A{"$value", 1}},
 			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestSetDifference(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Include("flowerFieldA"),
+			agg.Include("flowerFieldB"),
+			agg.Compute("inBOnly", agg.SetDifference("$flowerFieldB", "$flowerFieldA")),
+			agg.Exclude("_id"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "flowerFieldA", Value: 1},
+			{Key: "flowerFieldB", Value: 1},
+			{Key: "inBOnly", Value: bson.D{{Key: "$setDifference", Value: bson.A{"$flowerFieldB", "$flowerFieldA"}}}},
+			{Key: "_id", Value: 0},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestSetEquals(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Exclude("_id"),
+			agg.Include("cakes"),
+			agg.Include("cupcakes"),
+			agg.Compute("sameFlavors", agg.SetEquals("$cakes", "$cupcakes")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "cakes", Value: 1},
+			{Key: "cupcakes", Value: 1},
+			{Key: "sameFlavors", Value: bson.D{{Key: "$setEquals", Value: bson.A{"$cakes", "$cupcakes"}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestSetIntersection_ElementsArrayExample(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Include("flowerFieldA"),
+			agg.Include("flowerFieldB"),
+			agg.Compute("commonToBoth", agg.SetIntersection("$flowerFieldA", "$flowerFieldB")),
+			agg.Exclude("_id"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "flowerFieldA", Value: 1},
+			{Key: "flowerFieldB", Value: 1},
+			{Key: "commonToBoth", Value: bson.D{{Key: "$setIntersection", Value: bson.A{"$flowerFieldA", "$flowerFieldB"}}}},
+			{Key: "_id", Value: 0},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// TODO: implement TestSetIntersection_RetrieveDocsForRolesGrantedToCurrentUser when $not and $expr are implemented
+
+func TestSetIsSubset(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Include("flowerFieldA"),
+			agg.Include("flowerFieldB"),
+			agg.Compute("AisSubset", agg.SetIsSubset("$flowerFieldA", "$flowerFieldB")),
+			agg.Exclude("_id"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "flowerFieldA", Value: 1},
+			{Key: "flowerFieldB", Value: 1},
+			{Key: "AisSubset", Value: bson.D{{Key: "$setIsSubset", Value: bson.A{"$flowerFieldA", "$flowerFieldB"}}}},
+			{Key: "_id", Value: 0},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestSetUnion(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Include("flowerFieldA"),
+			agg.Include("flowerFieldB"),
+			agg.Compute("allValues", agg.SetUnion("$flowerFieldA", "$flowerFieldB")),
+			agg.Exclude("_id"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "flowerFieldA", Value: 1},
+			{Key: "flowerFieldB", Value: 1},
+			{Key: "allValues", Value: bson.D{{Key: "$setUnion", Value: bson.A{"$flowerFieldA", "$flowerFieldB"}}}},
+			{Key: "_id", Value: 0},
 		}}},
 	}
 	assertPipelineEqual(t, got, want)
@@ -1036,6 +1455,138 @@ func TestSinh(t *testing.T) {
 					{Key: "$degreesToRadians", Value: "$angle"},
 				}},
 			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// TODO: implement TestSize when $cond is implemented
+
+func TestSlice(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Include("name"),
+			agg.Compute("threeFavorites", agg.Slice("$favorites", 3, nil)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "name", Value: 1},
+			{Key: "threeFavorites", Value: bson.D{{Key: "$slice", Value: bson.A{"$favorites", 3}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestSortArray_SortOnAField(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Exclude("_id"),
+			agg.Compute("result", agg.SortArray("$team", agg.Sort("name", agg.Asc))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "result", Value: bson.D{{Key: "$sortArray", Value: bson.D{
+				{Key: "input", Value: "$team"},
+				{Key: "sortBy", Value: bson.D{{Key: "name", Value: 1}}},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestSortArray_SortOnASubfield(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Exclude("_id"),
+			agg.Compute("result", agg.SortArray("$team", agg.Sort("address.city", agg.Desc))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "result", Value: bson.D{{Key: "$sortArray", Value: bson.D{
+				{Key: "input", Value: "$team"},
+				{Key: "sortBy", Value: bson.D{{Key: "address.city", Value: -1}}},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestSortArray_SortOnMultipleFields(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Exclude("_id"),
+			agg.Compute("result", agg.SortArray("$team", agg.Sort("age", agg.Desc), agg.Sort("name", agg.Asc))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "result", Value: bson.D{{Key: "$sortArray", Value: bson.D{
+				{Key: "input", Value: "$team"},
+				{Key: "sortBy", Value: bson.D{
+					{Key: "age", Value: -1},
+					{Key: "name", Value: 1},
+				}},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestSortArrayByValue_SortArrayOfIntegers(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Exclude("_id"),
+			agg.Compute("result", agg.SortArrayByValue([]int{1, 4, 1, 6, 12, 5}, agg.Asc)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "result", Value: bson.D{{Key: "$sortArray", Value: bson.D{
+				{Key: "input", Value: []int{1, 4, 1, 6, 12, 5}},
+				{Key: "sortBy", Value: 1},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestSortArrayByValue_SortOnMixedTypeFields(t *testing.T) {
+	d, err := bson.ParseDecimal128("10.23")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Exclude("_id"),
+			agg.Compute("result", agg.SortArrayByValue([]any{
+				20, 4, bson.D{{Key: "a", Value: "Free"}}, 6, 21, 5, "Gratis",
+				bson.D{{Key: "a", Value: nil}},
+				bson.D{{Key: "a", Value: bson.D{{Key: "sale", Value: true}, {Key: "price", Value: 19}}}},
+				d,
+				bson.D{{Key: "a", Value: "On sale"}},
+			}, agg.Asc)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "result", Value: bson.D{{Key: "$sortArray", Value: bson.D{
+				{Key: "input", Value: []any{
+					20, 4, bson.D{{Key: "a", Value: "Free"}}, 6, 21, 5, "Gratis",
+					bson.D{{Key: "a", Value: nil}},
+					bson.D{{Key: "a", Value: bson.D{{Key: "sale", Value: true}, {Key: "price", Value: 19}}}},
+					d,
+					bson.D{{Key: "a", Value: "On sale"}},
+				}},
+				{Key: "sortBy", Value: 1},
+			}}}},
 		}}},
 	}
 	assertPipelineEqual(t, got, want)
@@ -1169,17 +1720,38 @@ func TestTanh(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestConcat(t *testing.T) {
+func TestTop(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("itemDescription", agg.Concat("$item", " - ", "$description")),
+			agg.Compute("topScore", agg.Top("$results", []any{"$playerId", "$score"}, agg.Sort("score", agg.Desc))),
 		),
 	}
 	want := bson.A{
 		bson.D{{Key: "$project", Value: bson.D{
-			{Key: "itemDescription", Value: bson.D{
-				{Key: "$concat", Value: bson.A{"$item", " - ", "$description"}},
-			}},
+			{Key: "topScore", Value: bson.D{{Key: "$top", Value: bson.D{
+				{Key: "sortBy", Value: bson.D{{Key: "score", Value: -1}}},
+				{Key: "output", Value: bson.A{"$playerId", "$score"}},
+				{Key: "input", Value: "$results"},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestTopN(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("topScores", agg.TopN(3, "$results", []any{"$playerId", "$score"}, agg.Sort("score", agg.Desc))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "topScores", Value: bson.D{{Key: "$topN", Value: bson.D{
+				{Key: "n", Value: 3},
+				{Key: "sortBy", Value: bson.D{{Key: "score", Value: -1}}},
+				{Key: "output", Value: bson.A{"$playerId", "$score"}},
+				{Key: "input", Value: "$results"},
+			}}}},
 		}}},
 	}
 	assertPipelineEqual(t, got, want)
@@ -1200,3 +1772,31 @@ func TestTrunc(t *testing.T) {
 	}
 	assertPipelineEqual(t, got, want)
 }
+
+func TestZip_MatrixTransposition(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Exclude("_id"),
+			agg.Compute("transposed", agg.Zip([]any{
+				agg.ArrayElemAt("$matrix", 0),
+				agg.ArrayElemAt("$matrix", 1),
+				agg.ArrayElemAt("$matrix", 2),
+			}, false)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "transposed", Value: bson.D{{Key: "$zip", Value: bson.D{
+				{Key: "inputs", Value: bson.A{
+					bson.D{{Key: "$arrayElemAt", Value: bson.A{"$matrix", 0}}},
+					bson.D{{Key: "$arrayElemAt", Value: bson.A{"$matrix", 1}}},
+					bson.D{{Key: "$arrayElemAt", Value: bson.A{"$matrix", 2}}},
+				}},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// TODO: implement TestZip_FilteringAndPreservingIndexes when $let is implemented
