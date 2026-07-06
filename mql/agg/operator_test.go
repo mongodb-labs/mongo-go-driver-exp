@@ -720,7 +720,7 @@ func TestIn(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestIndexOfBytes(t *testing.T) {
+func TestIndexOfBytes_Example(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
 			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", nil)),
@@ -736,7 +736,55 @@ func TestIndexOfBytes(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestIndexOfCP(t *testing.T) {
+func TestIndexOfBytes_StartOption(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", &agg.IndexOfOptions{Start: 1})),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "byteLocation", Value: bson.D{
+				{Key: "$indexOfBytes", Value: bson.A{"$item", "foo", 1}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestIndexOfBytes_EndOption(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", &agg.IndexOfOptions{End: 4})),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "byteLocation", Value: bson.D{
+				{Key: "$indexOfBytes", Value: bson.A{"$item", "foo", 0, 4}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestIndexOfBytes_StartAndEndOption(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", &agg.IndexOfOptions{Start: 1, End: 4})),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "byteLocation", Value: bson.D{
+				{Key: "$indexOfBytes", Value: bson.A{"$item", "foo", 1, 4}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestIndexOfCP_Example(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
 			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", nil)),
@@ -745,6 +793,48 @@ func TestIndexOfCP(t *testing.T) {
 	want := bson.A{
 		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "cpLocation", Value: bson.D{{Key: "$indexOfCP", Value: bson.A{"$item", "foo"}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestIndexOfCP_StartOption(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", &agg.IndexOfOptions{Start: 1})),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "cpLocation", Value: bson.D{{Key: "$indexOfCP", Value: bson.A{"$item", "foo", 1}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestIndexOfCP_EndOption(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", &agg.IndexOfOptions{End: 4})),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "cpLocation", Value: bson.D{{Key: "$indexOfCP", Value: bson.A{"$item", "foo", 0, 4}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestIndexOfCP_StartAndEndOption(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", &agg.IndexOfOptions{Start: 1, End: 4})),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "cpLocation", Value: bson.D{{Key: "$indexOfCP", Value: bson.A{"$item", "foo", 1, 4}}}},
 		}}},
 	}
 	assertPipelineEqual(t, got, want)
