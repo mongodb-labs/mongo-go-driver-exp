@@ -723,7 +723,7 @@ func TestIn(t *testing.T) {
 func TestIndexOfBytes_Example(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", nil)),
+			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", nil, nil)),
 		),
 	}
 	want := bson.A{
@@ -739,7 +739,7 @@ func TestIndexOfBytes_Example(t *testing.T) {
 func TestIndexOfBytes_StartOption(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", &agg.IndexOfOptions{Start: 1})),
+			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", 1, nil)),
 		),
 	}
 	want := bson.A{
@@ -755,7 +755,7 @@ func TestIndexOfBytes_StartOption(t *testing.T) {
 func TestIndexOfBytes_EndOption(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", &agg.IndexOfOptions{End: 4})),
+			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", nil, 4)),
 		),
 	}
 	want := bson.A{
@@ -771,7 +771,7 @@ func TestIndexOfBytes_EndOption(t *testing.T) {
 func TestIndexOfBytes_StartAndEndOption(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", &agg.IndexOfOptions{Start: 1, End: 4})),
+			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", 1, 4)),
 		),
 	}
 	want := bson.A{
@@ -787,7 +787,7 @@ func TestIndexOfBytes_StartAndEndOption(t *testing.T) {
 func TestIndexOfCP_Example(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", nil)),
+			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", nil, nil)),
 		),
 	}
 	want := bson.A{
@@ -801,7 +801,7 @@ func TestIndexOfCP_Example(t *testing.T) {
 func TestIndexOfCP_StartOption(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", &agg.IndexOfOptions{Start: 1})),
+			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", 1, nil)),
 		),
 	}
 	want := bson.A{
@@ -815,7 +815,7 @@ func TestIndexOfCP_StartOption(t *testing.T) {
 func TestIndexOfCP_EndOption(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", &agg.IndexOfOptions{End: 4})),
+			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", nil, 4)),
 		),
 	}
 	want := bson.A{
@@ -829,7 +829,7 @@ func TestIndexOfCP_EndOption(t *testing.T) {
 func TestIndexOfCP_StartAndEndOption(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", &agg.IndexOfOptions{Start: 1, End: 4})),
+			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", 1, 4)),
 		),
 	}
 	want := bson.A{
@@ -1144,6 +1144,7 @@ func TestRegexFind_AndItsOptions(t *testing.T) {
 }
 
 func TestRegexFind_IOption(t *testing.T) {
+	opts := "i"
 	got := agg.Pipeline{
 		// Specify i as part of the Regex type
 		agg.AddFieldsStage(
@@ -1151,11 +1152,11 @@ func TestRegexFind_IOption(t *testing.T) {
 		),
 		// Specify i in the options field
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFind("$description", "line", &agg.RegexOptions{Options: "i"})),
+			agg.Assign("returnObject", agg.RegexFind("$description", "line", &opts)),
 		),
 		// Mix Regex type with options field
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFind("$description", bson.Regex{Pattern: "line"}, &agg.RegexOptions{Options: "i"})),
+			agg.Assign("returnObject", agg.RegexFind("$description", bson.Regex{Pattern: "line"}, &opts)),
 		),
 	}
 	want := bson.A{
@@ -1201,6 +1202,7 @@ func TestRegexFindAll_AndItsOptions(t *testing.T) {
 }
 
 func TestRegexFindAll_IOption(t *testing.T) {
+	opts := "i"
 	got := agg.Pipeline{
 		// Specify i as part of the regex type
 		agg.AddFieldsStage(
@@ -1208,11 +1210,11 @@ func TestRegexFindAll_IOption(t *testing.T) {
 		),
 		// Specify i in the options field
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFindAll("$description", "line", &agg.RegexOptions{Options: "i"})),
+			agg.Assign("returnObject", agg.RegexFindAll("$description", "line", &opts)),
 		),
 		// Mix Regex type with options field
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFindAll("$description", bson.Regex{Pattern: "line"}, &agg.RegexOptions{Options: "i"})),
+			agg.Assign("returnObject", agg.RegexFindAll("$description", bson.Regex{Pattern: "line"}, &opts)),
 		),
 	}
 	want := bson.A{
@@ -1282,6 +1284,7 @@ func TestRegexFindMatch_AndItsOptions(t *testing.T) {
 }
 
 func TestRegexMatch_IOption(t *testing.T) {
+	opts := "i"
 	got := agg.Pipeline{
 		// Specify i as part of the Regex type
 		agg.AddFieldsStage(
@@ -1289,11 +1292,11 @@ func TestRegexMatch_IOption(t *testing.T) {
 		),
 		// Specify i in the options field
 		agg.AddFieldsStage(
-			agg.Assign("result", agg.RegexMatch("$description", "line", &agg.RegexOptions{Options: "i"})),
+			agg.Assign("result", agg.RegexMatch("$description", "line", &opts)),
 		),
 		// Mix Regex type with options field
 		agg.AddFieldsStage(
-			agg.Assign("result", agg.RegexMatch("$description", bson.Regex{Pattern: "line"}, &agg.RegexOptions{Options: "i"})),
+			agg.Assign("result", agg.RegexMatch("$description", bson.Regex{Pattern: "line"}, &opts)),
 		),
 	}
 	want := bson.A{
