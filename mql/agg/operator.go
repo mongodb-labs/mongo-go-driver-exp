@@ -32,7 +32,7 @@ func Add[T NumberResolver, U NumberResolver](value T, values ...U) NumberExpr {
 }
 
 // AllElementsTrue returns true if no element of the array evaluates to false ($allElementsTrue).
-func AllElementsTrue[T ArrayTypes](expr T) BoolExpr {
+func AllElementsTrue[T ArrayResolver](expr T) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$allElementsTrue", Value: bson.A{expr}}}}
 }
 
@@ -46,12 +46,12 @@ func And[T BoolResolver](exprs ...T) BoolExpr {
 }
 
 // AnyElementTrue returns true if any element of the array evaluates to true ($anyElementTrue).
-func AnyElementTrue[T ArrayTypes](expr T) BoolExpr {
+func AnyElementTrue[T ArrayResolver](expr T) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$anyElementTrue", Value: bson.A{expr}}}}
 }
 
 // ArrayElemAt returns the element at the specified array index ($arrayElemAt).
-func ArrayElemAt[T ArrayTypes](array T, idx Expr) AnyExpr {
+func ArrayElemAt[T ArrayResolver](array T, idx Expr) AnyExpr {
 	return AnyExpr{expr: bson.D{{Key: "$arrayElemAt", Value: bson.A{array, idx}}}}
 }
 
@@ -117,7 +117,7 @@ func BitXor(exprs ...Expr) NumberExpr {
 // Bottom returns the bottom element within an array according to the specified sort order ($bottom).
 // This is the expression operator (MongoDB 7.0+) that takes an input array.
 // See BottomAccumulator for the $group/$setWindowFields accumulator form.
-func Bottom[T ArrayTypes](input T, output Expr, sortBy ...SortField) AnyExpr {
+func Bottom[T ArrayResolver](input T, output Expr, sortBy ...SortField) AnyExpr {
 	sortDoc := make(bson.D, len(sortBy))
 	for i, f := range sortBy {
 		sf := f.sortField()
@@ -133,7 +133,7 @@ func Bottom[T ArrayTypes](input T, output Expr, sortBy ...SortField) AnyExpr {
 // BottomN returns the bottom n elements within an array according to the specified sort order ($bottomN).
 // This is the expression operator (MongoDB 7.0+) that takes an input array.
 // See BottomNAccumulator for the $group/$setWindowFields accumulator form.
-func BottomN[T ArrayTypes](n Expr, input T, output Expr, sortBy ...SortField) ArrayExpr {
+func BottomN[T ArrayResolver](n Expr, input T, output Expr, sortBy ...SortField) ArrayExpr {
 	sortDoc := make(bson.D, len(sortBy))
 	for i, f := range sortBy {
 		sf := f.sortField()
@@ -168,7 +168,7 @@ func Concat[T StringResolver, U StringResolver](value T, values ...U) StringExpr
 }
 
 // ConcatArrays concatenates arrays to return the concatenated array ($concatArrays).
-func ConcatArrays[T ArrayTypes, U ArrayTypes](array T, arrays ...U) ArrayExpr {
+func ConcatArrays[T ArrayResolver, U ArrayResolver](array T, arrays ...U) ArrayExpr {
 	v := make([]any, len(arrays)+1)
 	v[0] = array
 	for i := range arrays {
@@ -229,14 +229,14 @@ func FilterArray[T ArrayResolver, U BoolResolver](input T, as string, cond U, li
 // First returns the first element of the array expression ($first).
 // This is the array expression operator (MongoDB 4.4+).
 // See FirstAccumulator for the $group/$setWindowFields accumulator form.
-func First[T ArrayTypes](expr T) AnyExpr {
+func First[T ArrayResolver](expr T) AnyExpr {
 	return AnyExpr{expr: bson.D{{Key: "$first", Value: expr}}}
 }
 
 // FirstN returns the first n elements from an array ($firstN).
 // This is the array expression operator (MongoDB 5.1+).
 // See FirstNAccumulator for the $group/$setWindowFields accumulator form.
-func FirstN[T ArrayTypes](n Expr, input T) ArrayExpr {
+func FirstN[T ArrayResolver](n Expr, input T) ArrayExpr {
 	return ArrayExpr{expr: bson.D{{Key: "$firstN", Value: bson.D{
 		{Key: "n", Value: n},
 		{Key: "input", Value: input},
@@ -282,7 +282,7 @@ type IndexOfOptions struct {
 
 // IndexOfArray searches an array for a value and returns the index of the first occurrence ($indexOfArray).
 // Optionally provide start and end index bounds via IndexOfOptions.
-func IndexOfArray[T ArrayTypes](array T, search Expr, opts *IndexOfOptions) NumberExpr {
+func IndexOfArray[T ArrayResolver](array T, search Expr, opts *IndexOfOptions) NumberExpr {
 	args := bson.A{array, search}
 	if opts != nil && opts.Start != nil {
 		args = append(args, opts.Start)
@@ -296,14 +296,14 @@ func IndexOfArray[T ArrayTypes](array T, search Expr, opts *IndexOfOptions) Numb
 // Last returns the last element of the array expression ($last).
 // This is the array expression operator (MongoDB 4.4+).
 // See LastAccumulator for the $group/$setWindowFields accumulator form.
-func Last[T ArrayTypes](expr T) AnyExpr {
+func Last[T ArrayResolver](expr T) AnyExpr {
 	return AnyExpr{expr: bson.D{{Key: "$last", Value: expr}}}
 }
 
 // LastN returns the last n elements from an array ($lastN).
 // This is the array expression operator (MongoDB 5.1+).
 // See LastNAccumulator for the $group/$setWindowFields accumulator form.
-func LastN[T ArrayTypes](n Expr, input T) ArrayExpr {
+func LastN[T ArrayResolver](n Expr, input T) ArrayExpr {
 	return ArrayExpr{expr: bson.D{{Key: "$lastN", Value: bson.D{
 		{Key: "n", Value: n},
 		{Key: "input", Value: input},
@@ -349,7 +349,7 @@ func Max(value Expr, values ...Expr) AnyExpr {
 // MaxN returns the n largest values in an array ($maxN).
 // This is the array expression operator (MongoDB 5.1+).
 // See MaxNAccumulator for the $group/$setWindowFields accumulator form.
-func MaxN[T ArrayTypes](n Expr, input T) ArrayExpr {
+func MaxN[T ArrayResolver](n Expr, input T) ArrayExpr {
 	return ArrayExpr{expr: bson.D{{Key: "$maxN", Value: bson.D{
 		{Key: "input", Value: input},
 		{Key: "n", Value: n},
@@ -370,7 +370,7 @@ func Min(value Expr, values ...Expr) AnyExpr {
 // MinN returns the n smallest values in an array ($minN).
 // This is the array expression operator (MongoDB 5.1+).
 // See MinNAccumulator for the $group/$setWindowFields accumulator form.
-func MinN[T ArrayTypes](n Expr, input T) ArrayExpr {
+func MinN[T ArrayResolver](n Expr, input T) ArrayExpr {
 	return ArrayExpr{expr: bson.D{{Key: "$minN", Value: bson.D{
 		{Key: "input", Value: input},
 		{Key: "n", Value: n},
@@ -424,7 +424,7 @@ func RadiansToDegrees[T NumberResolver](expr T) NumberExpr {
 
 // Range outputs an array of integers from start (inclusive) to end (exclusive) ($range).
 // An optional step controls the increment; defaults to 1.
-func Range[T NumberTypes, U NumberTypes, S NumberTypes](start T, end U, step *S) ArrayExpr {
+func Range[T NumberResolver, U NumberResolver, S NumberResolver](start T, end U, step *S) ArrayExpr {
 	args := bson.A{start, end}
 	if step != nil {
 		args = append(args, *step)
@@ -433,7 +433,7 @@ func Range[T NumberTypes, U NumberTypes, S NumberTypes](start T, end U, step *S)
 }
 
 // ReverseArray returns an array with the elements in reverse order ($reverseArray).
-func ReverseArray[T ArrayTypes](expr T) ArrayExpr {
+func ReverseArray[T ArrayResolver](expr T) ArrayExpr {
 	return ArrayExpr{expr: bson.D{{Key: "$reverseArray", Value: expr}}}
 }
 
@@ -447,12 +447,12 @@ func Round[T NumberResolver](number T, place ...int) NumberExpr {
 }
 
 // SetDifference returns elements in the first set but not the second ($setDifference).
-func SetDifference[T ArrayTypes, U ArrayTypes](expr1 T, expr2 U) ArrayExpr {
+func SetDifference[T ArrayResolver, U ArrayResolver](expr1 T, expr2 U) ArrayExpr {
 	return ArrayExpr{expr: bson.D{{Key: "$setDifference", Value: bson.A{expr1, expr2}}}}
 }
 
 // SetEquals returns true if all input sets have the same distinct elements ($setEquals).
-func SetEquals[T ArrayTypes](exprs ...T) BoolExpr {
+func SetEquals[T ArrayResolver](exprs ...T) BoolExpr {
 	a := make(bson.A, len(exprs))
 	for i, v := range exprs {
 		a[i] = v
@@ -461,7 +461,7 @@ func SetEquals[T ArrayTypes](exprs ...T) BoolExpr {
 }
 
 // SetIntersection returns elements that appear in all of the input sets ($setIntersection).
-func SetIntersection[T ArrayTypes](exprs ...T) ArrayExpr {
+func SetIntersection[T ArrayResolver](exprs ...T) ArrayExpr {
 	a := make(bson.A, len(exprs))
 	for i, v := range exprs {
 		a[i] = v
@@ -470,12 +470,12 @@ func SetIntersection[T ArrayTypes](exprs ...T) ArrayExpr {
 }
 
 // SetIsSubset returns true if all elements of expr1 appear in expr2 ($setIsSubset).
-func SetIsSubset[T ArrayTypes, U ArrayTypes](expr1 T, expr2 U) BoolExpr {
+func SetIsSubset[T ArrayResolver, U ArrayResolver](expr1 T, expr2 U) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$setIsSubset", Value: bson.A{expr1, expr2}}}}
 }
 
 // SetUnion returns elements that appear in any of the input sets ($setUnion).
-func SetUnion[T ArrayTypes](exprs ...T) ArrayExpr {
+func SetUnion[T ArrayResolver](exprs ...T) ArrayExpr {
 	a := make(bson.A, len(exprs))
 	for i, v := range exprs {
 		a[i] = v
@@ -499,13 +499,13 @@ func Sinh[T NumberResolver](expr T) NumberExpr {
 }
 
 // Size returns the number of elements in the array ($size).
-func Size[T ArrayTypes](expr T) NumberExpr {
+func Size[T ArrayResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$size", Value: expr}}}
 }
 
 // Slice returns n elements of an array ($slice).
 // Pass a non-nil start to specify a starting index; otherwise elements are taken from the beginning.
-func Slice[T ArrayTypes](expression T, n Expr, start *Expr) ArrayExpr {
+func Slice[T ArrayResolver](expression T, n Expr, start *Expr) ArrayExpr {
 	if start != nil {
 		return ArrayExpr{expr: bson.D{{Key: "$slice", Value: bson.A{expression, *start, n}}}}
 	}
@@ -514,7 +514,7 @@ func Slice[T ArrayTypes](expression T, n Expr, start *Expr) ArrayExpr {
 
 // SortArray sorts the elements of an array by the specified document fields ($sortArray).
 // Use SortArrayByValue for arrays of scalars.
-func SortArray[T ArrayTypes](input T, sortBy ...SortField) ArrayExpr {
+func SortArray[T ArrayResolver](input T, sortBy ...SortField) ArrayExpr {
 	sortDoc := make(bson.D, len(sortBy))
 	for i, f := range sortBy {
 		sf := f.sortField()
@@ -528,7 +528,7 @@ func SortArray[T ArrayTypes](input T, sortBy ...SortField) ArrayExpr {
 
 // SortArrayByValue sorts a scalar-element array in the given direction ($sortArray).
 // Use SortArray for arrays of documents.
-func SortArrayByValue[T ArrayTypes](input T, order SortOrder) ArrayExpr {
+func SortArrayByValue[T ArrayResolver](input T, order SortOrder) ArrayExpr {
 	return ArrayExpr{expr: bson.D{{Key: "$sortArray", Value: bson.D{
 		{Key: "input", Value: input},
 		{Key: "sortBy", Value: order.bsonValue()},
@@ -575,7 +575,7 @@ func Tanh[T NumberResolver](expr T) NumberExpr {
 // Top returns the top element within an array according to the specified sort order ($top).
 // This is the expression operator (MongoDB 7.0+) that takes an input array.
 // See TopAccumulator for the $group/$setWindowFields accumulator form.
-func Top[T ArrayTypes](input T, output Expr, sortBy ...SortField) AnyExpr {
+func Top[T ArrayResolver](input T, output Expr, sortBy ...SortField) AnyExpr {
 	sortDoc := make(bson.D, len(sortBy))
 	for i, f := range sortBy {
 		sf := f.sortField()
@@ -591,7 +591,7 @@ func Top[T ArrayTypes](input T, output Expr, sortBy ...SortField) AnyExpr {
 // TopN returns the top n elements within an array according to the specified sort order ($topN).
 // This is the expression operator (MongoDB 7.0+) that takes an input array.
 // See TopNAccumulator for the $group/$setWindowFields accumulator form.
-func TopN[T ArrayTypes](n Expr, input T, output Expr, sortBy ...SortField) ArrayExpr {
+func TopN[T ArrayResolver](n Expr, input T, output Expr, sortBy ...SortField) ArrayExpr {
 	sortDoc := make(bson.D, len(sortBy))
 	for i, f := range sortBy {
 		sf := f.sortField()
@@ -618,7 +618,7 @@ func Trunc[T NumberResolver](number T, place ...int) NumberExpr {
 // When useLongestLength is true, the output length is determined by the longest input array;
 // pass default values for shorter arrays via defaults. When useLongestLength is false (default),
 // the output length is the shortest input array and defaults must be empty.
-func Zip[T ArrayTypes](inputs T, useLongestLength bool, defaults ...Expr) ArrayExpr {
+func Zip[T ArrayResolver](inputs T, useLongestLength bool, defaults ...Expr) ArrayExpr {
 	doc := bson.D{{Key: "inputs", Value: inputs}}
 	if useLongestLength {
 		doc = append(doc, bson.E{Key: "useLongestLength", Value: true})
