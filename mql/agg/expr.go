@@ -11,7 +11,7 @@ type Number interface {
 }
 
 type ArrayResolver interface {
-	AnyExpr | ArrayExpr | string
+	AnyExpr | ArrayExpr | string | []any | bson.A | []string | []int | []int32 | []int64 | []float64
 }
 
 type NumberResolver interface {
