@@ -320,7 +320,7 @@ func IndexOfCP[T StringResolver, U StringResolver](str T, substring U, start, en
 			args = append(args, end)
 		}
 	}
-	return NumberExpr{expr: bson.D{{Key: "$indexOfCP", Value: args}}
+	return NumberExpr{expr: bson.D{{Key: "$indexOfCP", Value: args}}}
 }
 
 // Last returns the last element of the array expression ($last).
@@ -518,6 +518,7 @@ func ReplaceOne[T StringResolver, R StringResolver](input T, find Expr, replacem
 		{Key: "find", Value: find},
 		{Key: "replacement", Value: replacement},
 	}}}}
+}
 
 // ReverseArray returns an array with the elements in reverse order ($reverseArray).
 func ReverseArray[T ArrayResolver](expr T) ArrayExpr {
@@ -541,6 +542,7 @@ func Rtrim[T StringResolver](input T, chars Expr) StringExpr {
 		args = append(args, bson.E{Key: "chars", Value: chars})
 	}
 	return StringExpr{expr: bson.D{{Key: "$rtrim", Value: args}}}
+}
 
 // SetDifference returns elements in the first set but not the second ($setDifference).
 func SetDifference[T ArrayResolver, U ArrayResolver](expr1 T, expr2 U) ArrayExpr {
@@ -611,6 +613,7 @@ func Slice[T ArrayResolver](expression T, n Expr, start Expr) ArrayExpr {
 // Split splits a string into substrings based on a delimiter and returns an array of substrings ($split).
 func Split[T StringResolver](str T, delimiter Expr) ArrayExpr {
 	return ArrayExpr{expr: bson.D{{Key: "$split", Value: bson.A{str, delimiter}}}}
+}
 
 // SortArray sorts the elements of an array by the specified document fields ($sortArray).
 // Use SortArrayByValue for arrays of scalars.

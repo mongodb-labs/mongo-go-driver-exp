@@ -1660,7 +1660,8 @@ func TestReplaceOne_ReplaceUsingString(t *testing.T) {
 				{Key: "find", Value: "blue paint"},
 				{Key: "replacement", Value: "red paint"},
 			}}}},
-  }
+		}}},
+	}
 	assertPipelineEqual(t, got, want)
 }
 
@@ -1677,10 +1678,11 @@ func TestReplaceOne_ReplaceUsingRegex(t *testing.T) {
 				{Key: "find", Value: bson.Regex{Pattern: `\bblue paint\b`}},
 				{Key: "replacement", Value: "red paint"},
 			}}}},
+		}}},
 	}
 	assertPipelineEqual(t, got, want)
 }
-           
+
 func TestReverseArray(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
@@ -1726,7 +1728,8 @@ func TestRtrim(t *testing.T) {
 			  {Key: "description", Value: bson.D{{Key: "$rtrim", Value: bson.D{
 			  {Key: "input", Value: "$description"},
 			}}}},
-  }
+		}}},
+	}
 	assertPipelineEqual(t, got, want)
 }
 
@@ -2340,9 +2343,11 @@ func TestTop(t *testing.T) {
 				{Key: "output", Value: bson.A{"$playerId", "$score"}},
 				{Key: "input", Value: "$results"},
 			}}}},
+		}}},
+	}
 	assertPipelineEqual(t, got, want)
 }
-            
+
 func TestTopN(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
