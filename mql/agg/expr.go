@@ -32,6 +32,8 @@ type AnyExpr struct {
 	expr Expr
 }
 
+type Option[T any] func(*T)
+
 func (ae AnyExpr) MarshalBSONValue() (byte, []byte, error) {
 	if ae.expr == nil {
 		return 0x0A, nil, nil // BSON null

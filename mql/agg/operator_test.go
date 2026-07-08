@@ -622,10 +622,53 @@ func TestExp(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
+func TestFilterArray_WithoutFilterOptions(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("items", agg.FilterArray("$items", agg.Gte("$$this.price", 100))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "items", Value: bson.D{
+				{Key: "$filter", Value: bson.D{
+					{Key: "input", Value: "$items"},
+					{Key: "cond", Value: bson.D{
+						{Key: "$gte", Value: bson.A{"$$this.price", 100}},
+					}},
+				}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestFilterArray_WithFilterLimit(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("items", agg.FilterArray("$items", agg.Gte("$$this.price", 100), agg.WithFilterLimit(1))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "items", Value: bson.D{
+				{Key: "$filter", Value: bson.D{
+					{Key: "input", Value: "$items"},
+					{Key: "cond", Value: bson.D{
+						{Key: "$gte", Value: bson.A{"$$this.price", 100}},
+					}},
+					{Key: "limit", Value: 1},
+				}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
 func TestFilterArray_Example(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("items", agg.FilterArray("$items", "item", agg.Gte("$$item.price", 100))),
+			agg.Compute("items", agg.FilterArray("$items", agg.Gte("$$item.price", 100), agg.WithFilterAs("item"))),
 		),
 	}
 	want := bson.A{
@@ -647,7 +690,7 @@ func TestFilterArray_Example(t *testing.T) {
 func TestFilterArray_UsingLimitField(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("items", agg.FilterArray("$items", "item", agg.Gte("$$item.price", 100), 1)),
+			agg.Compute("items", agg.FilterArray("$items", agg.Gte("$$item.price", 100), agg.WithFilterAs("item"), agg.WithFilterLimit(1))),
 		),
 	}
 	want := bson.A{
@@ -670,7 +713,7 @@ func TestFilterArray_UsingLimitField(t *testing.T) {
 func TestFilterArray_LimitGreaterThanPossibleMatches(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("items", agg.FilterArray("$items", "item", agg.Gte("$$item.price", 100), 5)),
+			agg.Compute("items", agg.FilterArray("$items", agg.Gte("$$item.price", 100), agg.WithFilterAs("item"), agg.WithFilterLimit(5))),
 		),
 	}
 	want := bson.A{
@@ -865,10 +908,10 @@ func TestIn(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestIndexOfArray_Example(t *testing.T) {
+func TestIndexOfArray_WithoutIndexOfOptions(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("index", agg.IndexOfArray("$items", 2, nil, nil)),
+			agg.Compute("index", agg.IndexOfArray("$items", 2)),
 		),
 	}
 	want := bson.A{
@@ -879,10 +922,10 @@ func TestIndexOfArray_Example(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestIndexOfArray_StartOption(t *testing.T) {
+func TestIndexOfArray_WithIndexOfStart(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("index", agg.IndexOfArray("$items", 2, 1, nil)),
+			agg.Compute("index", agg.IndexOfArray("$items", 2, agg.WithIndexOfStart(1))),
 		),
 	}
 	want := bson.A{
@@ -893,10 +936,10 @@ func TestIndexOfArray_StartOption(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestIndexOfArray_EndOption(t *testing.T) {
+func TestIndexOfArray_WithIndexOfEnd(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("index", agg.IndexOfArray("$items", 2, nil, 4)),
+			agg.Compute("index", agg.IndexOfArray("$items", 2, agg.WithIndexOfEnd(4))),
 		),
 	}
 	want := bson.A{
@@ -907,10 +950,10 @@ func TestIndexOfArray_EndOption(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestIndexOfArray_StartAndEndOption(t *testing.T) {
+func TestIndexOfArray_WithIndexOfOptions(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("index", agg.IndexOfArray("$items", 2, 1, 4)),
+			agg.Compute("index", agg.IndexOfArray("$items", 2, agg.WithIndexOfStart(1), agg.WithIndexOfEnd(4))),
 		),
 	}
 	want := bson.A{
@@ -921,10 +964,10 @@ func TestIndexOfArray_StartAndEndOption(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestIndexOfBytes_Example(t *testing.T) {
+func TestIndexOfBytes_WithoutIndexOfOptions(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", nil, nil)),
+			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo")),
 		),
 	}
 	want := bson.A{
@@ -937,10 +980,10 @@ func TestIndexOfBytes_Example(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestIndexOfBytes_StartOption(t *testing.T) {
+func TestIndexOfBytes_WithIndexOfStart(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", 1, nil)),
+			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", agg.WithIndexOfStart(1))),
 		),
 	}
 	want := bson.A{
@@ -953,10 +996,10 @@ func TestIndexOfBytes_StartOption(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestIndexOfBytes_EndOption(t *testing.T) {
+func TestIndexOfBytes_WithIndexOfEnd(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", nil, 4)),
+			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", agg.WithIndexOfEnd(4))),
 		),
 	}
 	want := bson.A{
@@ -969,10 +1012,10 @@ func TestIndexOfBytes_EndOption(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestIndexOfBytes_StartAndEndOption(t *testing.T) {
+func TestIndexOfBytes_WithIndexOfOptions(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", 1, 4)),
+			agg.Compute("byteLocation", agg.IndexOfBytes("$item", "foo", agg.WithIndexOfStart(1), agg.WithIndexOfEnd(4))),
 		),
 	}
 	want := bson.A{
@@ -985,10 +1028,10 @@ func TestIndexOfBytes_StartAndEndOption(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestIndexOfCP_Example(t *testing.T) {
+func TestIndexOfCP_WithoutIndexOfOptions(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", nil, nil)),
+			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo")),
 		),
 	}
 	want := bson.A{
@@ -999,10 +1042,10 @@ func TestIndexOfCP_Example(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestIndexOfCP_StartOption(t *testing.T) {
+func TestIndexOfCP_WithIndexOfStart(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", 1, nil)),
+			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", agg.WithIndexOfStart(1))),
 		),
 	}
 	want := bson.A{
@@ -1013,10 +1056,10 @@ func TestIndexOfCP_StartOption(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestIndexOfCP_EndOption(t *testing.T) {
+func TestIndexOfCP_WithIndexOfEnd(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", nil, 4)),
+			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", agg.WithIndexOfEnd(4))),
 		),
 	}
 	want := bson.A{
@@ -1027,10 +1070,10 @@ func TestIndexOfCP_EndOption(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestIndexOfCP_StartAndEndOption(t *testing.T) {
+func TestIndexOfCP_WithIndexOfOptions(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", 1, 4)),
+			agg.Compute("cpLocation", agg.IndexOfCP("$item", "foo", agg.WithIndexOfStart(1), agg.WithIndexOfEnd(4))),
 		),
 	}
 	want := bson.A{
@@ -1168,11 +1211,11 @@ func TestLte(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestLtrim(t *testing.T) {
+func TestLtrim_WithoutTrimChars(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
 			agg.Include("item"),
-			agg.Compute("description", agg.Ltrim("$description", nil)),
+			agg.Compute("description", agg.Ltrim("$description")),
 		),
 	}
 	want := bson.A{
@@ -1180,6 +1223,25 @@ func TestLtrim(t *testing.T) {
 			{Key: "item", Value: 1},
 			{Key: "description", Value: bson.D{{Key: "$ltrim", Value: bson.D{
 				{Key: "input", Value: "$description"},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestLtrim_WithTrimChars(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Include("item"),
+			agg.Compute("description", agg.Ltrim("$description", agg.WithTrimChars("*"))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "item", Value: 1},
+			{Key: "description", Value: bson.D{{Key: "$ltrim", Value: bson.D{
+				{Key: "input", Value: "$description"},
+				{Key: "chars", Value: "*"},
 			}}}},
 		}}},
 	}
@@ -1392,13 +1454,30 @@ func TestRadiansToDegrees(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestRange(t *testing.T) {
-	step := 25
+func TestRange_WithoutRangeOptions(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
 			agg.Exclude("_id"),
 			agg.Include("city"),
-			agg.Compute("Rest stops", agg.Range(0, "$distance", &step)),
+			agg.Compute("Rest stops", agg.Range(0, "$distance")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "city", Value: 1},
+			{Key: "Rest stops", Value: bson.D{{Key: "$range", Value: bson.A{0, "$distance"}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestRange_WithRangeStep(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Exclude("_id"),
+			agg.Include("city"),
+			agg.Compute("Rest stops", agg.Range(0, "$distance", agg.WithRangeStep(25))),
 		),
 	}
 	want := bson.A{
@@ -1414,7 +1493,7 @@ func TestRange(t *testing.T) {
 func TestRegexFind_AndItsOptions(t *testing.T) {
 	got := agg.Pipeline{
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFind("$description", bson.Regex{Pattern: "line"}, nil)),
+			agg.Assign("returnObject", agg.RegexFind("$description", bson.Regex{Pattern: "line"})),
 		),
 	}
 	want := bson.A{
@@ -1429,19 +1508,18 @@ func TestRegexFind_AndItsOptions(t *testing.T) {
 }
 
 func TestRegexFind_IOption(t *testing.T) {
-	opts := "i"
 	got := agg.Pipeline{
 		// Specify i as part of the Regex type
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFind("$description", bson.Regex{Pattern: "line", Options: "i"}, nil)),
+			agg.Assign("returnObject", agg.RegexFind("$description", bson.Regex{Pattern: "line", Options: "i"})),
 		),
 		// Specify i in the options field
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFind("$description", "line", &opts)),
+			agg.Assign("returnObject", agg.RegexFind("$description", "line", agg.WithRegexOptions("i"))),
 		),
 		// Mix Regex type with options field
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFind("$description", bson.Regex{Pattern: "line"}, &opts)),
+			agg.Assign("returnObject", agg.RegexFind("$description", bson.Regex{Pattern: "line"}, agg.WithRegexOptions("i"))),
 		),
 	}
 	want := bson.A{
@@ -1472,7 +1550,7 @@ func TestRegexFind_IOption(t *testing.T) {
 func TestRegexFindAll_AndItsOptions(t *testing.T) {
 	got := agg.Pipeline{
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFindAll("$description", bson.Regex{Pattern: "line"}, nil)),
+			agg.Assign("returnObject", agg.RegexFindAll("$description", bson.Regex{Pattern: "line"})),
 		),
 	}
 	want := bson.A{
@@ -1487,19 +1565,18 @@ func TestRegexFindAll_AndItsOptions(t *testing.T) {
 }
 
 func TestRegexFindAll_IOption(t *testing.T) {
-	opts := "i"
 	got := agg.Pipeline{
 		// Specify i as part of the regex type
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFindAll("$description", bson.Regex{Pattern: "line", Options: "i"}, nil)),
+			agg.Assign("returnObject", agg.RegexFindAll("$description", bson.Regex{Pattern: "line", Options: "i"})),
 		),
 		// Specify i in the options field
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFindAll("$description", "line", &opts)),
+			agg.Assign("returnObject", agg.RegexFindAll("$description", "line", agg.WithRegexOptions("i"))),
 		),
 		// Mix Regex type with options field
 		agg.AddFieldsStage(
-			agg.Assign("returnObject", agg.RegexFindAll("$description", bson.Regex{Pattern: "line"}, &opts)),
+			agg.Assign("returnObject", agg.RegexFindAll("$description", bson.Regex{Pattern: "line"}, agg.WithRegexOptions("i"))),
 		),
 	}
 	want := bson.A{
@@ -1531,7 +1608,7 @@ func TestRegexFindAll_ParseEmailFromString(t *testing.T) {
 	got := agg.Pipeline{
 		agg.AddFieldsStage(
 			agg.Assign("email", agg.RegexFindAll("$comment", bson.Regex{
-				Pattern: `[a-z0-9_.+-]+@[a-z0-9_.+-]+\.[a-z0-9_.+-]+`, Options: "i"}, nil)),
+				Pattern: `[a-z0-9_.+-]+@[a-z0-9_.+-]+\.[a-z0-9_.+-]+`, Options: "i"})),
 		),
 		agg.SetStage(agg.Assign("email", "$email.match")),
 	}
@@ -1554,7 +1631,7 @@ func TestRegexFindAll_ParseEmailFromString(t *testing.T) {
 func TestRegexMatch_AndItsOptions(t *testing.T) {
 	got := agg.Pipeline{
 		agg.AddFieldsStage(
-			agg.Assign("result", agg.RegexMatch("$description", bson.Regex{Pattern: "line"}, nil)),
+			agg.Assign("result", agg.RegexMatch("$description", bson.Regex{Pattern: "line"})),
 		),
 	}
 	want := bson.A{
@@ -1569,19 +1646,18 @@ func TestRegexMatch_AndItsOptions(t *testing.T) {
 }
 
 func TestRegexMatch_IOption(t *testing.T) {
-	opts := "i"
 	got := agg.Pipeline{
 		// Specify i as part of the Regex type
 		agg.AddFieldsStage(
-			agg.Assign("result", agg.RegexMatch("$description", bson.Regex{Pattern: "line", Options: "i"}, nil)),
+			agg.Assign("result", agg.RegexMatch("$description", bson.Regex{Pattern: "line", Options: "i"})),
 		),
 		// Specify i in the options field
 		agg.AddFieldsStage(
-			agg.Assign("result", agg.RegexMatch("$description", "line", &opts)),
+			agg.Assign("result", agg.RegexMatch("$description", "line", agg.WithRegexOptions("i"))),
 		),
 		// Mix Regex type with options field
 		agg.AddFieldsStage(
-			agg.Assign("result", agg.RegexMatch("$description", bson.Regex{Pattern: "line"}, &opts)),
+			agg.Assign("result", agg.RegexMatch("$description", bson.Regex{Pattern: "line"}, agg.WithRegexOptions("i"))),
 		),
 	}
 	want := bson.A{
@@ -1651,9 +1727,9 @@ func TestReplaceOne_ReplaceUsingString(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
 			agg.Compute("item", agg.ReplaceOne("$item", "blue paint", "red paint")),
-    ),
-  }
-  want := bson.A{
+		),
+	}
+	want := bson.A{
 		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "item", Value: bson.D{{Key: "$replaceOne", Value: bson.D{
 				{Key: "input", Value: "$item"},
@@ -1669,11 +1745,11 @@ func TestReplaceOne_ReplaceUsingRegex(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
 			agg.Compute("item", agg.ReplaceOne("$item", bson.Regex{Pattern: `\bblue paint\b`}, "red paint")),
-  	),
+		),
 	}
 	want := bson.A{
 		bson.D{{Key: "$project", Value: bson.D{
-      	{Key: "item", Value: bson.D{{Key: "$replaceOne", Value: bson.D{
+			{Key: "item", Value: bson.D{{Key: "$replaceOne", Value: bson.D{
 				{Key: "input", Value: "$item"},
 				{Key: "find", Value: bson.Regex{Pattern: `\bblue paint\b`}},
 				{Key: "replacement", Value: "red paint"},
@@ -1699,10 +1775,26 @@ func TestReverseArray(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestRound(t *testing.T) {
+func TestRound_WithoutRoundOptions(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("roundedValue", agg.Round("$value", 1)),
+			agg.Compute("roundedValue", agg.Round("$value")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "roundedValue", Value: bson.D{
+				{Key: "$round", Value: bson.A{"$value"}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestRound_WithRoundPlace(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("roundedValue", agg.Round("$value", agg.WithRoundPlace(1))),
 		),
 	}
 	want := bson.A{
@@ -1715,18 +1807,37 @@ func TestRound(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestRtrim(t *testing.T) {
+func TestRtrim_WithoutTrimChars(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
 			agg.Include("item"),
-			agg.Compute("description", agg.Rtrim("$description", nil)),
-    ),
+			agg.Compute("description", agg.Rtrim("$description")),
+		),
 	}
 	want := bson.A{
 		bson.D{{Key: "$project", Value: bson.D{
-        {Key: "item", Value: 1},
-			  {Key: "description", Value: bson.D{{Key: "$rtrim", Value: bson.D{
-			  {Key: "input", Value: "$description"},
+			{Key: "item", Value: 1},
+			{Key: "description", Value: bson.D{{Key: "$rtrim", Value: bson.D{
+				{Key: "input", Value: "$description"},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestRtrim_WithTrimChars(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Include("item"),
+			agg.Compute("description", agg.Rtrim("$description", agg.WithTrimChars("*"))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "item", Value: 1},
+			{Key: "description", Value: bson.D{{Key: "$rtrim", Value: bson.D{
+				{Key: "input", Value: "$description"},
+				{Key: "chars", Value: "*"},
 			}}}},
 		}}},
 	}
@@ -1888,21 +1999,37 @@ func TestSinh(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-// TODO: implement TestSize when $cond is implemented          
-           
+// TODO: implement TestSize when $cond is implemented
+
 // TODO: implement TestSplit after $unwind stage is implemented
 
-func TestSlice(t *testing.T) {
+func TestSlice_WithoutSliceOptions(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
 			agg.Include("name"),
-			agg.Compute("threeFavorites", agg.Slice("$favorites", 3, nil)),
+			agg.Compute("threeFavorites", agg.Slice("$favorites", 3)),
 		),
 	}
 	want := bson.A{
 		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "name", Value: 1},
 			{Key: "threeFavorites", Value: bson.D{{Key: "$slice", Value: bson.A{"$favorites", 3}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestSlice_WithSlicePosition(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Include("name"),
+			agg.Compute("threeFavorites", agg.Slice("$favorites", 3, agg.WithSlicePosition(2))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "name", Value: 1},
+			{Key: "threeFavorites", Value: bson.D{{Key: "$slice", Value: bson.A{"$favorites", 2, 3}}}},
 		}}},
 	}
 	assertPipelineEqual(t, got, want)
@@ -2303,17 +2430,17 @@ func TestToLower(t *testing.T) {
 		agg.ProjectStage(
 			agg.Compute("item", agg.ToLower("$item")),
 			agg.Compute("description", agg.ToLower("$description")),
-    ),
+		),
 	}
 	want := bson.A{
 		bson.D{{Key: "$project", Value: bson.D{
-      {Key: "item", Value: bson.D{{Key: "$toLower", Value: "$item"}}},
+			{Key: "item", Value: bson.D{{Key: "$toLower", Value: "$item"}}},
 			{Key: "description", Value: bson.D{{Key: "$toLower", Value: "$description"}}},
 		}}},
 	}
-  assertPipelineEqual(t, got, want)
+	assertPipelineEqual(t, got, want)
 }
-           
+
 func TestToUpper(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
@@ -2329,7 +2456,7 @@ func TestToUpper(t *testing.T) {
 	}
 	assertPipelineEqual(t, got, want)
 }
-           
+
 func TestTop(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
@@ -2338,7 +2465,7 @@ func TestTop(t *testing.T) {
 	}
 	want := bson.A{
 		bson.D{{Key: "$project", Value: bson.D{
-      			{Key: "topScore", Value: bson.D{{Key: "$top", Value: bson.D{
+			{Key: "topScore", Value: bson.D{{Key: "$top", Value: bson.D{
 				{Key: "sortBy", Value: bson.D{{Key: "score", Value: -1}}},
 				{Key: "output", Value: bson.A{"$playerId", "$score"}},
 				{Key: "input", Value: "$results"},
@@ -2367,28 +2494,63 @@ func TestTopN(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
-func TestTrim(t *testing.T) {
+func TestTrim_WithoutTrimChars(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
 			agg.Include("item"),
-			agg.Compute("description", agg.Trim("$description", nil)),
-    ),
+			agg.Compute("description", agg.Trim("$description")),
+		),
 	}
 	want := bson.A{
 		bson.D{{Key: "$project", Value: bson.D{
-      {Key: "item", Value: 1},
+			{Key: "item", Value: 1},
 			{Key: "description", Value: bson.D{{Key: "$trim", Value: bson.D{
-			{Key: "input", Value: "$description"},
-    }}}},
-    }}},
+				{Key: "input", Value: "$description"},
+			}}}},
+		}}},
 	}
 	assertPipelineEqual(t, got, want)
 }
 
-func TestTrunc(t *testing.T) {
+func TestTrim_WithTrimChars(t *testing.T) {
 	got := agg.Pipeline{
 		agg.ProjectStage(
-			agg.Compute("truncatedValue", agg.Trunc("$value", 1)),
+			agg.Include("item"),
+			agg.Compute("description", agg.Trim("$description", agg.WithTrimChars("*"))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "item", Value: 1},
+			{Key: "description", Value: bson.D{{Key: "$trim", Value: bson.D{
+				{Key: "input", Value: "$description"},
+				{Key: "chars", Value: "*"},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestTrunc_WithoutTruncOptions(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("truncatedValue", agg.Trunc("$value")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "truncatedValue", Value: bson.D{
+				{Key: "$trunc", Value: bson.A{"$value"}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestTrunc_WithTruncPlace(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Compute("truncatedValue", agg.Trunc("$value", agg.WithTruncPlace(1))),
 		),
 	}
 	want := bson.A{
@@ -2409,7 +2571,7 @@ func TestZip_MatrixTransposition(t *testing.T) {
 				agg.ArrayElemAt("$matrix", 0),
 				agg.ArrayElemAt("$matrix", 1),
 				agg.ArrayElemAt("$matrix", 2),
-			}, false)),
+			})),
 		),
 	}
 	want := bson.A{
@@ -2421,6 +2583,57 @@ func TestZip_MatrixTransposition(t *testing.T) {
 					bson.D{{Key: "$arrayElemAt", Value: bson.A{"$matrix", 1}}},
 					bson.D{{Key: "$arrayElemAt", Value: bson.A{"$matrix", 2}}},
 				}},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestZip_WithZipUseLongestLength(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Exclude("_id"),
+			agg.Compute("transposed", agg.Zip([]any{
+				agg.ArrayElemAt("$matrix", 0),
+				agg.ArrayElemAt("$matrix", 1),
+			}, agg.WithZipUseLongestLength(true))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "transposed", Value: bson.D{{Key: "$zip", Value: bson.D{
+				{Key: "inputs", Value: bson.A{
+					bson.D{{Key: "$arrayElemAt", Value: bson.A{"$matrix", 0}}},
+					bson.D{{Key: "$arrayElemAt", Value: bson.A{"$matrix", 1}}},
+				}},
+				{Key: "useLongestLength", Value: true},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestZip_WithZipUseLongestLengthAndZipDefaults(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ProjectStage(
+			agg.Exclude("_id"),
+			agg.Compute("transposed", agg.Zip([]any{
+				agg.ArrayElemAt("$matrix", 0),
+				agg.ArrayElemAt("$matrix", 1),
+			}, agg.WithZipUseLongestLength(true), agg.WithZipDefaults(0, 0))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "transposed", Value: bson.D{{Key: "$zip", Value: bson.D{
+				{Key: "inputs", Value: bson.A{
+					bson.D{{Key: "$arrayElemAt", Value: bson.A{"$matrix", 0}}},
+					bson.D{{Key: "$arrayElemAt", Value: bson.A{"$matrix", 1}}},
+				}},
+				{Key: "useLongestLength", Value: true},
+				{Key: "defaults", Value: bson.A{0, 0}},
 			}}}},
 		}}},
 	}

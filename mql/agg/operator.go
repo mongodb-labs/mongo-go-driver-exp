@@ -207,21 +207,38 @@ func Exp[T NumberResolver](exponent T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$exp", Value: exponent}}}
 }
 
+type filterOptions struct {
+	as    any
+	limit any
+}
+
+func WithFilterAs(as string) Option[filterOptions] {
+	return func(o *filterOptions) {
+		o.as = as
+	}
+}
+
+func WithFilterLimit(limit Expr) Option[filterOptions] {
+	return func(o *filterOptions) {
+		o.limit = limit
+	}
+}
+
 // FilterArray selects elements of input for which cond evaluates to true ($filter).
-// as names the variable for each element; pass "" to use the MongoDB default ("this").
-func FilterArray[T ArrayResolver, U BoolResolver](input T, as string, cond U, limit ...Expr) ArrayExpr {
+// Optionally name the per-element variable via WithFilterAs (defaults to "this") and cap the
+// number of matching elements via WithFilterLimit.
+func FilterArray[T ArrayResolver, U BoolResolver](input T, cond U, opts ...Option[filterOptions]) ArrayExpr {
+	var o filterOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	args := bson.D{bson.E{Key: "input", Value: input}}
-	if as != "" {
-		args = append(args, bson.E{Key: "as", Value: as})
+	if o.as != nil {
+		args = append(args, bson.E{Key: "as", Value: o.as})
 	}
-	args = append(args,
-		bson.E{Key: "cond", Value: cond},
-	)
-	if len(limit) > 1 {
-		panic("FilterArray: at most one limit expression may be provided")
-	}
-	if len(limit) == 1 {
-		args = append(args, bson.E{Key: "limit", Value: limit[0]})
+	args = append(args, bson.E{Key: "cond", Value: cond})
+	if o.limit != nil {
+		args = append(args, bson.E{Key: "limit", Value: o.limit})
 	}
 	return ArrayExpr{expr: bson.D{{Key: "$filter", Value: args}}}
 }
@@ -275,50 +292,82 @@ func In[U ArrayResolver](expr Expr, array U) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$in", Value: bson.A{expr, array}}}}
 }
 
+type indexOfOptions struct {
+	start any
+	end   any
+}
+
+func WithIndexOfStart[T NumberResolver](start T) Option[indexOfOptions] {
+	return func(o *indexOfOptions) {
+		o.start = start
+	}
+}
+
+func WithIndexOfEnd[T NumberResolver](end T) Option[indexOfOptions] {
+	return func(o *indexOfOptions) {
+		o.end = end
+	}
+}
+
 // IndexOfArray searches an array for a value and returns the index of the first occurrence ($indexOfArray).
 // Optionally provide start and end index bounds via IndexOfOptions.
-func IndexOfArray[T ArrayResolver](array T, search Expr, start Expr, end Expr) NumberExpr {
+func IndexOfArray[T ArrayResolver](array T, search Expr, opts ...Option[indexOfOptions]) NumberExpr {
+	var o indexOfOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	args := bson.A{array, search}
-	if start != nil || end != nil {
-		if start == nil {
-			start = 0
-		}
-		args = append(args, start)
-		if end != nil {
-			args = append(args, end)
+	if o.start != nil || o.end != nil {
+		if o.start != nil {
+			args = append(args, o.start)
+		} else {
+			args = append(args, 0) // end requires start; default to 0
 		}
 	}
-  return NumberExpr{expr: bson.D{{Key: "$indexOfArray", Value: args}}}
+	if o.end != nil {
+		args = append(args, o.end)
+	}
+	return NumberExpr{expr: bson.D{{Key: "$indexOfArray", Value: args}}}
 }
 
 // IndexOfBytes searches a string for a substring and returns the UTF-8 byte index of the first occurrence, or -1 if not found ($indexOfBytes).
 // start and end are optional starting and ending index positions; pass nil to omit. If only end is set, start defaults to 0.
-func IndexOfBytes[T StringResolver, U StringResolver](str T, substring U, start, end Expr) NumberExpr {
+func IndexOfBytes[T StringResolver, U StringResolver](str T, substring U, opts ...Option[indexOfOptions]) NumberExpr {
+	var o indexOfOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	args := bson.A{str, substring}
-  if start != nil || end != nil {
-		if start == nil {
-			start = 0
+	if o.start != nil || o.end != nil {
+		if o.start != nil {
+			args = append(args, o.start)
+		} else {
+			args = append(args, 0)
 		}
-		args = append(args, start)
-		if end != nil {
-			args = append(args, end)
-		}
-	}  
+	}
+	if o.end != nil {
+		args = append(args, o.end)
+	}
 	return NumberExpr{expr: bson.D{{Key: "$indexOfBytes", Value: args}}}
 }
 
 // IndexOfCP searches a string for a substring and returns the UTF-8 code point index of the first occurrence, or -1 if not found ($indexOfCP).
 // start and end are optional starting and ending index positions; pass nil to omit. If only end is set, start defaults to 0.
-func IndexOfCP[T StringResolver, U StringResolver](str T, substring U, start, end Expr) NumberExpr {
+func IndexOfCP[T StringResolver, U StringResolver](str T, substring U, opts ...Option[indexOfOptions]) NumberExpr {
+	var o indexOfOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	args := bson.A{str, substring}
-	if start != nil || end != nil {
-		if start == nil {
-			start = 0
+	if o.start != nil || o.end != nil {
+		if o.start != nil {
+			args = append(args, o.start)
+		} else {
+			args = append(args, 0)
 		}
-		args = append(args, start)
-		if end != nil {
-			args = append(args, end)
-		}
+	}
+	if o.end != nil {
+		args = append(args, o.end)
 	}
 	return NumberExpr{expr: bson.D{{Key: "$indexOfCP", Value: args}}}
 }
@@ -367,10 +416,14 @@ func Lte(a Expr, b Expr) BoolExpr {
 
 // Ltrim removes whitespace or the specified characters from the beginning of a string ($ltrim).
 // chars is optional; pass nil to remove whitespace.
-func Ltrim[T StringResolver](input T, chars Expr) StringExpr {
+func Ltrim[T StringResolver](input T, opts ...Option[trimOptions]) StringExpr {
+	var o trimOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	args := bson.D{{Key: "input", Value: input}}
-	if chars != nil {
-		args = append(args, bson.E{Key: "chars", Value: chars})
+	if o.chars != nil {
+		args = append(args, bson.E{Key: "chars", Value: o.chars})
 	}
 	return StringExpr{expr: bson.D{{Key: "$ltrim", Value: args}}}
 }
@@ -461,43 +514,79 @@ func Pow[T NumberResolver, U NumberResolver](number T, exponent U) NumberExpr {
 func RadiansToDegrees[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$radiansToDegrees", Value: expr}}}
 }
-  
+
+type rangeOptions struct {
+	step any
+}
+
+func WithRangeStep[T NumberResolver](step T) Option[rangeOptions] {
+	return func(o *rangeOptions) {
+		o.step = step
+	}
+}
+
 // Range outputs an array of integers from start (inclusive) to end (exclusive) ($range).
-// An optional step controls the increment; defaults to 1.
-func Range[T NumberResolver, U NumberResolver, S NumberResolver](start T, end U, step *S) ArrayExpr {
+// Optionally provide a step to control the increment via WithRangeStep; defaults to 1.
+func Range[T NumberResolver, U NumberResolver](start T, end U, opts ...Option[rangeOptions]) ArrayExpr {
+	var o rangeOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	args := bson.A{start, end}
-	if step != nil {
-		args = append(args, *step)
+	if o.step != nil {
+		args = append(args, o.step)
 	}
 	return ArrayExpr{expr: bson.D{{Key: "$range", Value: args}}}
 }
 
+type regexOptions struct {
+	options any
+}
+
+func WithRegexOptions(options string) Option[regexOptions] {
+	return func(o *regexOptions) {
+		o.options = options
+	}
+}
+
 // RegexFind applies a regular expression to a string and returns information on the first matched substring ($regexFind).
 // options is optional; pass nil to omit.
-func RegexFind[T StringResolver](input T, regex Expr, options *string) ObjectExpr {
+func RegexFind[T StringResolver](input T, regex Expr, opts ...Option[regexOptions]) ObjectExpr {
+	var o regexOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	args := bson.D{{Key: "input", Value: input}, {Key: "regex", Value: regex}}
-	if options != nil {
-		args = append(args, bson.E{Key: "options", Value: options})
+	if o.options != nil {
+		args = append(args, bson.E{Key: "options", Value: o.options})
 	}
 	return ObjectExpr{expr: bson.D{{Key: "$regexFind", Value: args}}}
 }
 
 // RegexFindAll applies a regular expression to a string and returns information on all matched substrings ($regexFindAll).
 // options is optional; pass nil to omit.
-func RegexFindAll[T StringResolver](input T, regex Expr, options *string) ArrayExpr {
+func RegexFindAll[T StringResolver](input T, regex Expr, opts ...Option[regexOptions]) ArrayExpr {
+	var o regexOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	args := bson.D{{Key: "input", Value: input}, {Key: "regex", Value: regex}}
-	if options != nil {
-		args = append(args, bson.E{Key: "options", Value: options})
+	if o.options != nil {
+		args = append(args, bson.E{Key: "options", Value: o.options})
 	}
 	return ArrayExpr{expr: bson.D{{Key: "$regexFindAll", Value: args}}}
 }
 
 // RegexMatch applies a regular expression to a string and returns true if a match is found ($regexMatch).
 // options is optional; pass nil to omit.
-func RegexMatch[T StringResolver](input T, regex Expr, options *string) BoolExpr {
+func RegexMatch[T StringResolver](input T, regex Expr, opts ...Option[regexOptions]) BoolExpr {
+	var o regexOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	args := bson.D{{Key: "input", Value: input}, {Key: "regex", Value: regex}}
-	if options != nil {
-		args = append(args, bson.E{Key: "options", Value: options})
+	if o.options != nil {
+		args = append(args, bson.E{Key: "options", Value: o.options})
 	}
 	return BoolExpr{expr: bson.D{{Key: "$regexMatch", Value: args}}}
 }
@@ -525,21 +614,41 @@ func ReverseArray[T ArrayResolver](expr T) ArrayExpr {
 	return ArrayExpr{expr: bson.D{{Key: "$reverseArray", Value: expr}}}
 }
 
-// Round rounds a number to a whole integer or to a specified decimal place ($round).
-// When place is omitted the array form is still used: [$number] (equivalent to place 0).
-func Round[T NumberResolver](number T, place ...int) NumberExpr {
-	if len(place) == 0 {
-		return NumberExpr{expr: bson.D{{Key: "$round", Value: bson.A{number}}}}
+type roundOptions struct {
+	place any
+}
+
+func WithRoundPlace[T NumberResolver](place T) Option[roundOptions] {
+	return func(o *roundOptions) {
+		o.place = place
 	}
-	return NumberExpr{expr: bson.D{{Key: "$round", Value: bson.A{number, place[0]}}}}
+}
+
+// Round rounds a number to a whole integer or to a specified decimal place ($round).
+// Optionally provide a decimal place via WithRoundPlace; when omitted the array form
+// is still used: [$number] (equivalent to place 0).
+func Round[T NumberResolver](number T, opts ...Option[roundOptions]) NumberExpr {
+	var o roundOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	args := bson.A{number}
+	if o.place != nil {
+		args = append(args, o.place)
+	}
+	return NumberExpr{expr: bson.D{{Key: "$round", Value: args}}}
 }
 
 // Rtrim removes whitespace characters or the specified characters from the end of a string ($rtrim).
 // chars is optional; pass nil to remove whitespace.
-func Rtrim[T StringResolver](input T, chars Expr) StringExpr {
+func Rtrim[T StringResolver](input T, opts ...Option[trimOptions]) StringExpr {
+	var o trimOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	args := bson.D{{Key: "input", Value: input}}
-	if chars != nil {
-		args = append(args, bson.E{Key: "chars", Value: chars})
+	if o.chars != nil {
+		args = append(args, bson.E{Key: "chars", Value: o.chars})
 	}
 	return StringExpr{expr: bson.D{{Key: "$rtrim", Value: args}}}
 }
@@ -595,17 +704,32 @@ func Sin[T NumberResolver](expr T) NumberExpr {
 func Sinh[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$sinh", Value: expr}}}
 }
-  
+
 // Size returns the number of elements in the array ($size).
 func Size[T ArrayResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$size", Value: expr}}}
 }
-  
+
+type sliceOptions struct {
+	position any
+}
+
+func WithSlicePosition[T NumberResolver](position T) Option[sliceOptions] {
+	return func(o *sliceOptions) {
+		o.position = position
+	}
+}
+
 // Slice returns n elements of an array ($slice).
-// Pass a non-nil start to specify a starting index; otherwise elements are taken from the beginning.
-func Slice[T ArrayResolver](expression T, n Expr, start Expr) ArrayExpr {
-	if start != nil {
-		return ArrayExpr{expr: bson.D{{Key: "$slice", Value: bson.A{expression, start, n}}}}
+// Optionally provide a starting index via WithSlicePosition; otherwise elements are
+// taken from the beginning.
+func Slice[T ArrayResolver](expression T, n Expr, opts ...Option[sliceOptions]) ArrayExpr {
+	var o sliceOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	if o.position != nil {
+		return ArrayExpr{expr: bson.D{{Key: "$slice", Value: bson.A{expression, o.position, n}}}}
 	}
 	return ArrayExpr{expr: bson.D{{Key: "$slice", Value: bson.A{expression, n}}}}
 }
@@ -709,7 +833,7 @@ func Tanh[T NumberResolver](expr T) NumberExpr {
 func ToLower[T StringResolver](expr T) StringExpr {
 	return StringExpr{expr: bson.D{{Key: "$toLower", Value: expr}}}
 }
-  
+
 // Top returns the top element within an array according to the specified sort order ($top).
 // This is the expression operator (MongoDB 7.0+) that takes an input array.
 // See TopAccumulator for the $group/$setWindowFields accumulator form.
@@ -748,36 +872,87 @@ func ToUpper[T StringResolver](expr T) StringExpr {
 	return StringExpr{expr: bson.D{{Key: "$toUpper", Value: expr}}}
 }
 
+type trimOptions struct {
+	chars any
+}
+
+func WithTrimChars[T StringResolver](chars T) Option[trimOptions] {
+	return func(o *trimOptions) {
+		o.chars = chars
+	}
+}
+
 // Trim removes whitespace or the specified characters from the beginning and end of a string ($trim).
 // chars is optional; pass nil to remove whitespace.
-func Trim[T StringResolver](input T, chars Expr) StringExpr {
+func Trim[T StringResolver](input T, opts ...Option[trimOptions]) StringExpr {
+	var o trimOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	args := bson.D{{Key: "input", Value: input}}
-	if chars != nil {
-		args = append(args, bson.E{Key: "chars", Value: chars})
+	if o.chars != nil {
+		args = append(args, bson.E{Key: "chars", Value: o.chars})
 	}
 	return StringExpr{expr: bson.D{{Key: "$trim", Value: args}}}
 }
 
-// Trunc truncates a number to a whole integer or to a specified decimal place ($trunc).
-// When place is omitted the array form is still used: [$number] (equivalent to place 0).
-func Trunc[T NumberResolver](number T, place ...int) NumberExpr {
-	if len(place) == 0 {
-		return NumberExpr{expr: bson.D{{Key: "$trunc", Value: bson.A{number}}}}
+type truncOptions struct {
+	place any
+}
+
+func WithTruncPlace[T NumberResolver](place T) Option[truncOptions] {
+	return func(o *truncOptions) {
+		o.place = place
 	}
-	return NumberExpr{expr: bson.D{{Key: "$trunc", Value: bson.A{number, place[0]}}}}
+}
+
+// Trunc truncates a number to a whole integer or to a specified decimal place ($trunc).
+// Optionally provide a decimal place via WithTruncPlace; when omitted the array form
+// is still used: [$number] (equivalent to place 0).
+func Trunc[T NumberResolver](number T, opts ...Option[truncOptions]) NumberExpr {
+	var o truncOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	args := bson.A{number}
+	if o.place != nil {
+		args = append(args, o.place)
+	}
+	return NumberExpr{expr: bson.D{{Key: "$trunc", Value: args}}}
+}
+
+type zipOptions struct {
+	useLongestLength any
+	defaults         any
+}
+
+func WithZipUseLongestLength(useLongestLength bool) Option[zipOptions] {
+	return func(o *zipOptions) {
+		o.useLongestLength = useLongestLength
+	}
+}
+
+func WithZipDefaults(defaults ...Expr) Option[zipOptions] {
+	return func(o *zipOptions) {
+		o.defaults = defaults
+	}
 }
 
 // Zip merges arrays together into an array of arrays ($zip).
-// When useLongestLength is true, the output length is determined by the longest input array;
-// pass default values for shorter arrays via defaults. When useLongestLength is false (default),
+// When WithZipUseLongestLength(true) is provided, the output length is determined by the
+// longest input array; pass default values for shorter arrays via WithZipDefaults. Otherwise
 // the output length is the shortest input array and defaults must be empty.
-func Zip(inputs Expr, useLongestLength bool, defaults ...Expr) ArrayExpr {
-	doc := bson.D{{Key: "inputs", Value: inputs}}
-	if useLongestLength {
-		doc = append(doc, bson.E{Key: "useLongestLength", Value: true})
+func Zip(inputs Expr, opts ...Option[zipOptions]) ArrayExpr {
+	var o zipOptions
+	for _, opt := range opts {
+		opt(&o)
 	}
-	if len(defaults) > 0 {
-		doc = append(doc, bson.E{Key: "defaults", Value: defaults})
+	doc := bson.D{{Key: "inputs", Value: inputs}}
+	if o.useLongestLength != nil {
+		doc = append(doc, bson.E{Key: "useLongestLength", Value: o.useLongestLength})
+	}
+	if o.defaults != nil {
+		doc = append(doc, bson.E{Key: "defaults", Value: o.defaults})
 	}
 	return ArrayExpr{expr: bson.D{{Key: "$zip", Value: doc}}}
 }

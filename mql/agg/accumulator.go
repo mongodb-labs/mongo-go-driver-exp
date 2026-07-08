@@ -14,30 +14,53 @@ func (a Accumulator) MarshalBSON() ([]byte, error) {
 
 // --- $accumulator ---
 
-type CustomAccumulatorOptions struct {
-	InitArgs []any
-	Finalize string
-	Lang     string
+type customAccumulatorOptions struct {
+	initArgs any
+	finalize any
+	lang     any
+}
+
+func WithCustomInitArgs(initArgs ...any) Option[customAccumulatorOptions] {
+	return func(o *customAccumulatorOptions) {
+		o.initArgs = initArgs
+	}
+}
+
+func WithCustomFinalize(finalize string) Option[customAccumulatorOptions] {
+	return func(o *customAccumulatorOptions) {
+		o.finalize = finalize
+	}
+}
+
+func WithCustomLang(lang string) Option[customAccumulatorOptions] {
+	return func(o *customAccumulatorOptions) {
+		o.lang = lang
+	}
 }
 
 // CustomAccumulator defines a custom accumulator function using JavaScript ($accumulator).
-// Pass nil opts to use defaults. Lang defaults to "js" if unset.
-func CustomAccumulator[A ArrayResolver](init, accumulate string, accumulateArgs A, merge string, opts *CustomAccumulatorOptions) Accumulator {
+// Optionally provide initArgs, finalize, and lang via WithCustomInitArgs, WithCustomFinalize,
+// and WithCustomLang. Lang defaults to "js" when WithCustomLang is not provided.
+func CustomAccumulator[A ArrayResolver](init, accumulate string, accumulateArgs A, merge string, opts ...Option[customAccumulatorOptions]) Accumulator {
+	var o customAccumulatorOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	doc := bson.D{{Key: "init", Value: init}}
-	if opts != nil && opts.InitArgs != nil {
-		doc = append(doc, bson.E{Key: "initArgs", Value: opts.InitArgs})
+	if o.initArgs != nil {
+		doc = append(doc, bson.E{Key: "initArgs", Value: o.initArgs})
 	}
 	doc = append(doc,
 		bson.E{Key: "accumulate", Value: accumulate},
 		bson.E{Key: "accumulateArgs", Value: accumulateArgs},
 		bson.E{Key: "merge", Value: merge},
 	)
-	if opts != nil && opts.Finalize != "" {
-		doc = append(doc, bson.E{Key: "finalize", Value: opts.Finalize})
+	if o.finalize != nil {
+		doc = append(doc, bson.E{Key: "finalize", Value: o.finalize})
 	}
-	lang := "js"
-	if opts != nil && opts.Lang != "" {
-		lang = opts.Lang
+	lang := any("js")
+	if o.lang != nil {
+		lang = o.lang
 	}
 	doc = append(doc, bson.E{Key: "lang", Value: lang})
 	return Accumulator{doc: bson.D{{Key: "$accumulator", Value: doc}}}
@@ -125,16 +148,26 @@ func DenseRankAccumulator() Accumulator {
 
 // --- $derivative ---
 
-type DerivativeAccumulatorOptions struct {
-	Unit string
+type derivativeOptions struct {
+	unit any
+}
+
+func WithDerivativeUnit(unit string) Option[derivativeOptions] {
+	return func(o *derivativeOptions) {
+		o.unit = unit
+	}
 }
 
 // DerivativeAccumulator returns the average rate of change within the specified window ($derivative).
-// Set opts.Unit to a time unit (e.g. "week") when the sortBy field is a date.
-func DerivativeAccumulator(input Expr, opts *DerivativeAccumulatorOptions) Accumulator {
+// Optionally provide a time unit (e.g. "week") via WithDerivativeUnit when the sortBy field is a date.
+func DerivativeAccumulator(input Expr, opts ...Option[derivativeOptions]) Accumulator {
+	var o derivativeOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	doc := bson.D{{Key: "input", Value: input}}
-	if opts != nil && opts.Unit != "" {
-		doc = append(doc, bson.E{Key: "unit", Value: opts.Unit})
+	if o.unit != nil {
+		doc = append(doc, bson.E{Key: "unit", Value: o.unit})
 	}
 	return Accumulator{doc: bson.D{{Key: "$derivative", Value: doc}}}
 }
@@ -148,23 +181,26 @@ func DocumentNumberAccumulator() Accumulator {
 
 // --- $expMovingAvg ---
 
-type ExpMovingAvgAccumulatorOptions struct {
-	N     *int32
-	Alpha *float64
+// ExpMovingAvgNAccumulator returns the exponential moving average of the input expression,
+// weighting the N most recent documents ($expMovingAvg).
+// Use ExpMovingAvgAlphaAccumulator instead to specify an exponential decay value; you must
+// specify exactly one of N or alpha.
+func ExpMovingAvgNAccumulator[T NumberResolver](input T, n int32) Accumulator {
+	return Accumulator{doc: bson.D{{Key: "$expMovingAvg", Value: bson.D{
+		{Key: "input", Value: input},
+		{Key: "N", Value: n},
+	}}}}
 }
 
-// ExpMovingAvgAccumulator returns the exponential moving average of the input expression ($expMovingAvg).
-// Set opts.N to a historical document count, or opts.Alpha to an exponential decay value.
-// Exactly one of N or Alpha must be set.
-func ExpMovingAvgAccumulator[T NumberResolver](input T, opts *ExpMovingAvgAccumulatorOptions) Accumulator {
-	doc := bson.D{{Key: "input", Value: input}}
-	if opts != nil && opts.N != nil {
-		doc = append(doc, bson.E{Key: "N", Value: *opts.N})
-	}
-	if opts != nil && opts.Alpha != nil {
-		doc = append(doc, bson.E{Key: "alpha", Value: *opts.Alpha})
-	}
-	return Accumulator{doc: bson.D{{Key: "$expMovingAvg", Value: doc}}}
+// ExpMovingAvgAlphaAccumulator returns the exponential moving average of the input expression,
+// using the exponential decay value alpha ($expMovingAvg).
+// Use ExpMovingAvgNAccumulator instead to specify a historical document count; you must
+// specify exactly one of N or alpha.
+func ExpMovingAvgAlphaAccumulator[T NumberResolver](input T, alpha float64) Accumulator {
+	return Accumulator{doc: bson.D{{Key: "$expMovingAvg", Value: bson.D{
+		{Key: "input", Value: input},
+		{Key: "alpha", Value: alpha},
+	}}}}
 }
 
 // --- $first ---
@@ -186,16 +222,26 @@ func FirstNAccumulator[T NumberResolver](input Expr, n T) Accumulator {
 
 // --- $integral ---
 
-type IntegralAccumulatorOptions struct {
-	Unit string
+type integralOptions struct {
+	unit any
+}
+
+func WithIntegralUnit(unit string) Option[integralOptions] {
+	return func(o *integralOptions) {
+		o.unit = unit
+	}
 }
 
 // IntegralAccumulator returns the approximation of the area under a curve ($integral).
-// Set opts.Unit to a time unit (e.g. "week") when the sortBy field is a date.
-func IntegralAccumulator(input Expr, opts *IntegralAccumulatorOptions) Accumulator {
+// Optionally provide a time unit (e.g. "week") via WithIntegralUnit when the sortBy field is a date.
+func IntegralAccumulator(input Expr, opts ...Option[integralOptions]) Accumulator {
+	var o integralOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	doc := bson.D{{Key: "input", Value: input}}
-	if opts != nil && opts.Unit != "" {
-		doc = append(doc, bson.E{Key: "unit", Value: opts.Unit})
+	if o.unit != nil {
+		doc = append(doc, bson.E{Key: "unit", Value: o.unit})
 	}
 	return Accumulator{doc: bson.D{{Key: "$integral", Value: doc}}}
 }
@@ -342,15 +388,29 @@ func SetUnionAccumulator[T ArrayResolver](expr T) Accumulator {
 
 // --- $shift ---
 
+type shiftOptions struct {
+	defaultExpr any
+}
+
+func WithShiftDefault(defaultExpr Expr) Option[shiftOptions] {
+	return func(o *shiftOptions) {
+		o.defaultExpr = defaultExpr
+	}
+}
+
 // ShiftAccumulator returns the value from a document in a specified position relative to the current document ($shift).
-// Pass a non-nil defaultExpr to specify a value for out-of-bounds positions; it must evaluate to a constant.
-func ShiftAccumulator(output Expr, by int32, defaultExpr any) Accumulator {
+// Optionally provide a value for out-of-bounds positions via WithShiftDefault; it must evaluate to a constant.
+func ShiftAccumulator(output Expr, by int32, opts ...Option[shiftOptions]) Accumulator {
+	var o shiftOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	doc := bson.D{
 		{Key: "output", Value: output},
 		{Key: "by", Value: by},
 	}
-	if defaultExpr != nil {
-		doc = append(doc, bson.E{Key: "default", Value: defaultExpr})
+	if o.defaultExpr != nil {
+		doc = append(doc, bson.E{Key: "default", Value: o.defaultExpr})
 	}
 	return Accumulator{doc: bson.D{{Key: "$shift", Value: doc}}}
 }

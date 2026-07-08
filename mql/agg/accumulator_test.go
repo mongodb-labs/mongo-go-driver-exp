@@ -29,11 +29,9 @@ func TestCustomAccumulator_ImplementAvgOperator(t *testing.T) {
         sum: state1.sum + state2.sum
     }
 }`,
-					&agg.CustomAccumulatorOptions{
-						Finalize: `function(state) {
+					agg.WithCustomFinalize(`function(state) {
     return (state.sum / state.count)
-}`,
-					},
+}`),
 				),
 			),
 		),
@@ -76,12 +74,10 @@ func TestCustomAccumulator_VaryInitialStateByGroup(t *testing.T) {
         restaurants: state1.restaurants.concat(state2.restaurants).slice(0, state1.max)
     }
 }`,
-					&agg.CustomAccumulatorOptions{
-						InitArgs: []any{"$city", "Bettles"},
-						Finalize: `function(state) {
+					agg.WithCustomInitArgs("$city", "Bettles"),
+					agg.WithCustomFinalize(`function(state) {
     return state.restaurants
-}`,
-					},
+}`),
 				),
 			),
 		),
@@ -96,6 +92,36 @@ func TestCustomAccumulator_VaryInitialStateByGroup(t *testing.T) {
 				{Key: "accumulateArgs", Value: bson.A{"$name"}},
 				{Key: "merge", Value: "function(state1, state2) {\n    return {\n        max: state1.max,\n        restaurants: state1.restaurants.concat(state2.restaurants).slice(0, state1.max)\n    }\n}"},
 				{Key: "finalize", Value: "function(state) {\n    return state.restaurants\n}"},
+				{Key: "lang", Value: "js"},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestCustomAccumulator_WithCustomLang(t *testing.T) {
+	got := agg.Pipeline{
+		agg.GroupStage(
+			"$author",
+			agg.Accumulate("count",
+				agg.CustomAccumulator(
+					"function() { return 0 }",
+					"function(state) { return state + 1 }",
+					agg.Array([]string{}),
+					"function(state1, state2) { return state1 + state2 }",
+					agg.WithCustomLang("js"),
+				),
+			),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$author"},
+			{Key: "count", Value: bson.D{{Key: "$accumulator", Value: bson.D{
+				{Key: "init", Value: "function() { return 0 }"},
+				{Key: "accumulate", Value: "function(state) { return state + 1 }"},
+				{Key: "accumulateArgs", Value: bson.A{}},
+				{Key: "merge", Value: "function(state1, state2) { return state1 + state2 }"},
 				{Key: "lang", Value: "js"},
 			}}}},
 		}}},
