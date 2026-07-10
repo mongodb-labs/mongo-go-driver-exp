@@ -249,6 +249,423 @@ func Cosh[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$cosh", Value: expr}}}
 }
 
+type dateAddOptions struct {
+	timezone any
+}
+
+// WithDateAddTimezone sets the timezone for DateAdd. The timezone resolves to an
+// Olson timezone identifier or UTC offset string.
+func WithDateAddTimezone[T StringResolver](timezone T) Option[dateAddOptions] {
+	return func(o *dateAddOptions) { o.timezone = timezone }
+}
+
+// DateAdd adds a number of time units to a date ($dateAdd).
+// startDate may resolve to a Date, Timestamp, or ObjectID; unit is a time unit
+// such as "day" or "hour"; amount resolves to an int or long.
+func DateAdd[A NumberResolver](startDate Expr, unit string, amount A, opts ...Option[dateAddOptions]) DateExpr {
+	var o dateAddOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	doc := bson.D{
+		{Key: "startDate", Value: startDate},
+		{Key: "unit", Value: unit},
+		{Key: "amount", Value: amount},
+	}
+	if o.timezone != nil {
+		doc = append(doc, bson.E{Key: "timezone", Value: o.timezone})
+	}
+	return DateExpr{expr: bson.D{{Key: "$dateAdd", Value: doc}}}
+}
+
+type dateDiffOptions struct {
+	timezone    any
+	startOfWeek any
+}
+
+// WithDateDiffTimezone sets the timezone for DateDiff.
+func WithDateDiffTimezone[T StringResolver](timezone T) Option[dateDiffOptions] {
+	return func(o *dateDiffOptions) { o.timezone = timezone }
+}
+
+// WithDateDiffStartOfWeek sets the start of the week for DateDiff; used when unit is "week".
+func WithDateDiffStartOfWeek[T StringResolver](startOfWeek T) Option[dateDiffOptions] {
+	return func(o *dateDiffOptions) { o.startOfWeek = startOfWeek }
+}
+
+// DateDiff returns the difference between two dates measured in unit ($dateDiff).
+// startDate and endDate may resolve to a Date, Timestamp, or ObjectID.
+func DateDiff(startDate Expr, endDate Expr, unit string, opts ...Option[dateDiffOptions]) NumberExpr {
+	var o dateDiffOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	doc := bson.D{
+		{Key: "startDate", Value: startDate},
+		{Key: "endDate", Value: endDate},
+		{Key: "unit", Value: unit},
+	}
+	if o.timezone != nil {
+		doc = append(doc, bson.E{Key: "timezone", Value: o.timezone})
+	}
+	if o.startOfWeek != nil {
+		doc = append(doc, bson.E{Key: "startOfWeek", Value: o.startOfWeek})
+	}
+	return NumberExpr{expr: bson.D{{Key: "$dateDiff", Value: doc}}}
+}
+
+type dateFromPartsOptions struct {
+	year         any
+	isoWeekYear  any
+	month        any
+	isoWeek      any
+	day          any
+	isoDayOfWeek any
+	hour         any
+	minute       any
+	second       any
+	millisecond  any
+	timezone     any
+}
+
+// WithDateFromPartsYear sets the calendar year.
+func WithDateFromPartsYear[T NumberResolver](year T) Option[dateFromPartsOptions] {
+	return func(o *dateFromPartsOptions) { o.year = year }
+}
+
+// WithDateFromPartsIsoWeekYear sets the ISO week date year.
+func WithDateFromPartsIsoWeekYear[T NumberResolver](isoWeekYear T) Option[dateFromPartsOptions] {
+	return func(o *dateFromPartsOptions) { o.isoWeekYear = isoWeekYear }
+}
+
+// WithDateFromPartsMonth sets the month.
+func WithDateFromPartsMonth[T NumberResolver](month T) Option[dateFromPartsOptions] {
+	return func(o *dateFromPartsOptions) { o.month = month }
+}
+
+// WithDateFromPartsIsoWeek sets the ISO week of the year.
+func WithDateFromPartsIsoWeek[T NumberResolver](isoWeek T) Option[dateFromPartsOptions] {
+	return func(o *dateFromPartsOptions) { o.isoWeek = isoWeek }
+}
+
+// WithDateFromPartsDay sets the day of the month.
+func WithDateFromPartsDay[T NumberResolver](day T) Option[dateFromPartsOptions] {
+	return func(o *dateFromPartsOptions) { o.day = day }
+}
+
+// WithDateFromPartsIsoDayOfWeek sets the ISO day of the week (Monday 1 - Sunday 7).
+func WithDateFromPartsIsoDayOfWeek[T NumberResolver](isoDayOfWeek T) Option[dateFromPartsOptions] {
+	return func(o *dateFromPartsOptions) { o.isoDayOfWeek = isoDayOfWeek }
+}
+
+// WithDateFromPartsHour sets the hour.
+func WithDateFromPartsHour[T NumberResolver](hour T) Option[dateFromPartsOptions] {
+	return func(o *dateFromPartsOptions) { o.hour = hour }
+}
+
+// WithDateFromPartsMinute sets the minute.
+func WithDateFromPartsMinute[T NumberResolver](minute T) Option[dateFromPartsOptions] {
+	return func(o *dateFromPartsOptions) { o.minute = minute }
+}
+
+// WithDateFromPartsSecond sets the second.
+func WithDateFromPartsSecond[T NumberResolver](second T) Option[dateFromPartsOptions] {
+	return func(o *dateFromPartsOptions) { o.second = second }
+}
+
+// WithDateFromPartsMillisecond sets the millisecond.
+func WithDateFromPartsMillisecond[T NumberResolver](millisecond T) Option[dateFromPartsOptions] {
+	return func(o *dateFromPartsOptions) { o.millisecond = millisecond }
+}
+
+// WithDateFromPartsTimezone sets the timezone.
+func WithDateFromPartsTimezone[T StringResolver](timezone T) Option[dateFromPartsOptions] {
+	return func(o *dateFromPartsOptions) { o.timezone = timezone }
+}
+
+// DateFromParts constructs a Date from its constituent parts ($dateFromParts).
+// Provide either the calendar parts (year, month, day) or the ISO week date
+// parts (isoWeekYear, isoWeek, isoDayOfWeek), not both.
+func DateFromParts(opts ...Option[dateFromPartsOptions]) DateExpr {
+	var o dateFromPartsOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	doc := bson.D{}
+	if o.year != nil {
+		doc = append(doc, bson.E{Key: "year", Value: o.year})
+	}
+	if o.isoWeekYear != nil {
+		doc = append(doc, bson.E{Key: "isoWeekYear", Value: o.isoWeekYear})
+	}
+	if o.month != nil {
+		doc = append(doc, bson.E{Key: "month", Value: o.month})
+	}
+	if o.isoWeek != nil {
+		doc = append(doc, bson.E{Key: "isoWeek", Value: o.isoWeek})
+	}
+	if o.day != nil {
+		doc = append(doc, bson.E{Key: "day", Value: o.day})
+	}
+	if o.isoDayOfWeek != nil {
+		doc = append(doc, bson.E{Key: "isoDayOfWeek", Value: o.isoDayOfWeek})
+	}
+	if o.hour != nil {
+		doc = append(doc, bson.E{Key: "hour", Value: o.hour})
+	}
+	if o.minute != nil {
+		doc = append(doc, bson.E{Key: "minute", Value: o.minute})
+	}
+	if o.second != nil {
+		doc = append(doc, bson.E{Key: "second", Value: o.second})
+	}
+	if o.millisecond != nil {
+		doc = append(doc, bson.E{Key: "millisecond", Value: o.millisecond})
+	}
+	if o.timezone != nil {
+		doc = append(doc, bson.E{Key: "timezone", Value: o.timezone})
+	}
+	return DateExpr{expr: bson.D{{Key: "$dateFromParts", Value: doc}}}
+}
+
+type dateFromStringOptions struct {
+	format   any
+	timezone any
+	onError  any
+	onNull   any
+}
+
+// WithDateFromStringFormat sets the date format of the input string.
+func WithDateFromStringFormat[T StringResolver](format T) Option[dateFromStringOptions] {
+	return func(o *dateFromStringOptions) { o.format = format }
+}
+
+// WithDateFromStringTimezone sets the timezone used to parse the string.
+func WithDateFromStringTimezone[T StringResolver](timezone T) Option[dateFromStringOptions] {
+	return func(o *dateFromStringOptions) { o.timezone = timezone }
+}
+
+// WithDateFromStringOnError sets the value returned if the string cannot be parsed.
+func WithDateFromStringOnError(onError Expr) Option[dateFromStringOptions] {
+	return func(o *dateFromStringOptions) { o.onError = onError }
+}
+
+// WithDateFromStringOnNull sets the value returned if the string is null or missing.
+func WithDateFromStringOnNull(onNull Expr) Option[dateFromStringOptions] {
+	return func(o *dateFromStringOptions) { o.onNull = onNull }
+}
+
+// DateFromString converts a date/time string to a Date ($dateFromString).
+func DateFromString[S StringResolver](dateString S, opts ...Option[dateFromStringOptions]) DateExpr {
+	var o dateFromStringOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	doc := bson.D{{Key: "dateString", Value: dateString}}
+	if o.format != nil {
+		doc = append(doc, bson.E{Key: "format", Value: o.format})
+	}
+	if o.timezone != nil {
+		doc = append(doc, bson.E{Key: "timezone", Value: o.timezone})
+	}
+	if o.onError != nil {
+		doc = append(doc, bson.E{Key: "onError", Value: o.onError})
+	}
+	if o.onNull != nil {
+		doc = append(doc, bson.E{Key: "onNull", Value: o.onNull})
+	}
+	return DateExpr{expr: bson.D{{Key: "$dateFromString", Value: doc}}}
+}
+
+type dateSubtractOptions struct {
+	timezone any
+}
+
+// WithDateSubtractTimezone sets the timezone for DateSubtract.
+func WithDateSubtractTimezone[T StringResolver](timezone T) Option[dateSubtractOptions] {
+	return func(o *dateSubtractOptions) { o.timezone = timezone }
+}
+
+// DateSubtract subtracts a number of time units from a date ($dateSubtract).
+// startDate may resolve to a Date, Timestamp, or ObjectID; unit is a time unit
+// such as "day" or "hour"; amount resolves to an int or long.
+func DateSubtract[A NumberResolver](startDate Expr, unit string, amount A, opts ...Option[dateSubtractOptions]) DateExpr {
+	var o dateSubtractOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	doc := bson.D{
+		{Key: "startDate", Value: startDate},
+		{Key: "unit", Value: unit},
+		{Key: "amount", Value: amount},
+	}
+	if o.timezone != nil {
+		doc = append(doc, bson.E{Key: "timezone", Value: o.timezone})
+	}
+	return DateExpr{expr: bson.D{{Key: "$dateSubtract", Value: doc}}}
+}
+
+type dateToPartsOptions struct {
+	timezone any
+	iso8601  *bool
+}
+
+// WithDateToPartsTimezone sets the timezone for DateToParts.
+func WithDateToPartsTimezone[T StringResolver](timezone T) Option[dateToPartsOptions] {
+	return func(o *dateToPartsOptions) { o.timezone = timezone }
+}
+
+// WithDateToPartsIso8601 selects ISO week date fields in the output document.
+func WithDateToPartsIso8601(iso8601 bool) Option[dateToPartsOptions] {
+	return func(o *dateToPartsOptions) { o.iso8601 = &iso8601 }
+}
+
+// DateToParts returns a document containing the constituent parts of a date ($dateToParts).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func DateToParts(date Expr, opts ...Option[dateToPartsOptions]) ObjectExpr {
+	var o dateToPartsOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	doc := bson.D{{Key: "date", Value: date}}
+	if o.timezone != nil {
+		doc = append(doc, bson.E{Key: "timezone", Value: o.timezone})
+	}
+	if o.iso8601 != nil {
+		doc = append(doc, bson.E{Key: "iso8601", Value: *o.iso8601})
+	}
+	return ObjectExpr{expr: bson.D{{Key: "$dateToParts", Value: doc}}}
+}
+
+type dateToStringOptions struct {
+	format   any
+	timezone any
+	onNull   any
+}
+
+// WithDateToStringFormat sets the output date format.
+func WithDateToStringFormat[T StringResolver](format T) Option[dateToStringOptions] {
+	return func(o *dateToStringOptions) { o.format = format }
+}
+
+// WithDateToStringTimezone sets the timezone used to format the date.
+func WithDateToStringTimezone[T StringResolver](timezone T) Option[dateToStringOptions] {
+	return func(o *dateToStringOptions) { o.timezone = timezone }
+}
+
+// WithDateToStringOnNull sets the value returned if the date is null or missing.
+func WithDateToStringOnNull(onNull Expr) Option[dateToStringOptions] {
+	return func(o *dateToStringOptions) { o.onNull = onNull }
+}
+
+// DateToString returns the date as a formatted string ($dateToString).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func DateToString(date Expr, opts ...Option[dateToStringOptions]) StringExpr {
+	var o dateToStringOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	doc := bson.D{{Key: "date", Value: date}}
+	if o.format != nil {
+		doc = append(doc, bson.E{Key: "format", Value: o.format})
+	}
+	if o.timezone != nil {
+		doc = append(doc, bson.E{Key: "timezone", Value: o.timezone})
+	}
+	if o.onNull != nil {
+		doc = append(doc, bson.E{Key: "onNull", Value: o.onNull})
+	}
+	return StringExpr{expr: bson.D{{Key: "$dateToString", Value: doc}}}
+}
+
+type dateTruncOptions struct {
+	binSize     any
+	timezone    any
+	startOfWeek any
+}
+
+// WithDateTruncBinSize sets the number of units per bin; defaults to 1.
+func WithDateTruncBinSize[T NumberResolver](binSize T) Option[dateTruncOptions] {
+	return func(o *dateTruncOptions) { o.binSize = binSize }
+}
+
+// WithDateTruncTimezone sets the timezone for DateTrunc.
+func WithDateTruncTimezone[T StringResolver](timezone T) Option[dateTruncOptions] {
+	return func(o *dateTruncOptions) { o.timezone = timezone }
+}
+
+// WithDateTruncStartOfWeek sets the start of the week; used when unit is "week".
+func WithDateTruncStartOfWeek[T StringResolver](startOfWeek T) Option[dateTruncOptions] {
+	return func(o *dateTruncOptions) { o.startOfWeek = startOfWeek }
+}
+
+// DateTrunc truncates a date to the given unit ($dateTrunc).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func DateTrunc(date Expr, unit string, opts ...Option[dateTruncOptions]) DateExpr {
+	var o dateTruncOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	doc := bson.D{
+		{Key: "date", Value: date},
+		{Key: "unit", Value: unit},
+	}
+	if o.binSize != nil {
+		doc = append(doc, bson.E{Key: "binSize", Value: o.binSize})
+	}
+	if o.timezone != nil {
+		doc = append(doc, bson.E{Key: "timezone", Value: o.timezone})
+	}
+	if o.startOfWeek != nil {
+		doc = append(doc, bson.E{Key: "startOfWeek", Value: o.startOfWeek})
+	}
+	return DateExpr{expr: bson.D{{Key: "$dateTrunc", Value: doc}}}
+}
+
+type datePartOptions struct {
+	timezone any
+}
+
+// WithDatePartTimezone sets the timezone for the single-date extraction operators
+// (DayOfMonth, DayOfWeek, DayOfYear, Hour, IsoDayOfWeek, IsoWeek, IsoWeekYear,
+// Millisecond, Minute, Month, Second, Week, Year). It resolves to an Olson
+// timezone identifier or UTC offset string.
+func WithDatePartTimezone[T StringResolver](timezone T) Option[datePartOptions] {
+	return func(o *datePartOptions) { o.timezone = timezone }
+}
+
+// datePart builds the verbose {op: {date, timezone?}} form shared by the
+// single-date extraction operators, all of which return an int.
+func datePart(op string, date Expr, opts ...Option[datePartOptions]) NumberExpr {
+	var o datePartOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	doc := bson.D{{Key: "date", Value: date}}
+	if o.timezone != nil {
+		doc = append(doc, bson.E{Key: "timezone", Value: o.timezone})
+	}
+	return NumberExpr{expr: bson.D{{Key: op, Value: doc}}}
+}
+
+// DayOfMonth returns the day of the month for a date, from 1 to 31 ($dayOfMonth).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func DayOfMonth(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+	return datePart("$dayOfMonth", date, opts...)
+}
+
+// DayOfWeek returns the day of the week for a date, from 1 (Sunday) to 7 (Saturday) ($dayOfWeek).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func DayOfWeek(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+	return datePart("$dayOfWeek", date, opts...)
+}
+
+// DayOfYear returns the day of the year for a date, from 1 to 366 ($dayOfYear).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func DayOfYear(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+	return datePart("$dayOfYear", date, opts...)
+}
+
 // DegreesToRadians converts a value from degrees to radians ($degreesToRadians).
 func DegreesToRadians[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$degreesToRadians", Value: expr}}}
@@ -362,6 +779,12 @@ func Gte(a Expr, b Expr) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$gte", Value: bson.A{a, b}}}}
 }
 
+// Hour returns the hour for a date, from 0 to 23 ($hour).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func Hour(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+	return datePart("$hour", date, opts...)
+}
+
 // IfNull returns the first non-null expression among val and more, or fallback
 // if all preceding ones are null ($ifNull).
 func IfNull(val Expr, fallback Expr, more ...Expr) AnyExpr {
@@ -472,6 +895,24 @@ func IsNumber(expr Expr) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$isNumber", Value: expr}}}
 }
 
+// IsoDayOfWeek returns the ISO 8601 weekday number, from 1 (Monday) to 7 (Sunday) ($isoDayOfWeek).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func IsoDayOfWeek(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+	return datePart("$isoDayOfWeek", date, opts...)
+}
+
+// IsoWeek returns the ISO 8601 week number, from 1 to 53 ($isoWeek).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func IsoWeek(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+	return datePart("$isoWeek", date, opts...)
+}
+
+// IsoWeekYear returns the year number in ISO 8601 format ($isoWeekYear).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func IsoWeekYear(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+	return datePart("$isoWeekYear", date, opts...)
+}
+
 // Last returns the last element of the array expression ($last).
 // This is the array expression operator (MongoDB 4.4+).
 // See LastAccumulator for the $group/$setWindowFields accumulator form.
@@ -555,6 +996,12 @@ func MergeObjects(documents ...Expr) ObjectExpr {
 	return ObjectExpr{expr: bson.D{{Key: "$mergeObjects", Value: documents}}}
 }
 
+// Millisecond returns the millisecond portion of a date, from 0 to 999 ($millisecond).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func Millisecond(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+	return datePart("$millisecond", date, opts...)
+}
+
 // Min returns the minimum value among the given expressions ($min).
 // Accepts any expression type (Expr = any).
 func Min(value Expr, values ...Expr) AnyExpr {
@@ -576,9 +1023,21 @@ func MinN[T ArrayResolver](n Expr, input T) ArrayExpr {
 	}}}}
 }
 
+// Minute returns the minute for a date, from 0 to 59 ($minute).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func Minute(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+	return datePart("$minute", date, opts...)
+}
+
 // Mod returns the remainder of dividing dividend by divisor ($mod).
 func Mod[T NumberResolver, U NumberResolver](dividend T, divisor U) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$mod", Value: bson.A{dividend, divisor}}}}
+}
+
+// Month returns the month for a date, from 1 (January) to 12 (December) ($month).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func Month(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+	return datePart("$month", date, opts...)
 }
 
 // Multiply returns the product of the given numeric expressions ($multiply).
@@ -763,6 +1222,12 @@ func Rtrim[T StringResolver](input T, opts ...Option[trimOptions]) StringExpr {
 		args = append(args, bson.E{Key: "chars", Value: o.chars})
 	}
 	return StringExpr{expr: bson.D{{Key: "$rtrim", Value: args}}}
+}
+
+// Second returns the seconds for a date, from 0 to 60 (leap seconds) ($second).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func Second(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+	return datePart("$second", date, opts...)
 }
 
 // SetDifference returns elements in the first set but not the second ($setDifference).
@@ -969,6 +1434,11 @@ func ToBool(expr Expr) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$toBool", Value: expr}}}
 }
 
+// ToDate converts a value to a Date ($toDate).
+func ToDate(expr Expr) DateExpr {
+	return DateExpr{expr: bson.D{{Key: "$toDate", Value: expr}}}
+}
+
 // ToDecimal converts a value to a Decimal128 ($toDecimal).
 func ToDecimal(expr Expr) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$toDecimal", Value: expr}}}
@@ -1131,6 +1601,28 @@ func WithZipDefaults(defaults ...Expr) Option[zipOptions] {
 	return func(o *zipOptions) {
 		o.defaults = defaults
 	}
+}
+
+// TsIncrement returns the incrementing ordinal from a timestamp as a long ($tsIncrement).
+func TsIncrement[T TimestampResolver](expr T) NumberExpr {
+	return NumberExpr{expr: bson.D{{Key: "$tsIncrement", Value: expr}}}
+}
+
+// TsSecond returns the seconds from a timestamp as a long ($tsSecond).
+func TsSecond[T TimestampResolver](expr T) NumberExpr {
+	return NumberExpr{expr: bson.D{{Key: "$tsSecond", Value: expr}}}
+}
+
+// Week returns the week number for a date, from 0 to 53 ($week).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func Week(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+	return datePart("$week", date, opts...)
+}
+
+// Year returns the year for a date ($year).
+// date may resolve to a Date, Timestamp, or ObjectID.
+func Year(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+	return datePart("$year", date, opts...)
 }
 
 // Zip merges arrays together into an array of arrays ($zip).
