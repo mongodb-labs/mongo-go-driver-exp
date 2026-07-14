@@ -159,6 +159,22 @@ func BsonSize[T ObjectResolver](object T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$bsonSize", Value: object}}}
 }
 
+// SwitchCase is a single branch of a Switch expression, pairing a boolean
+// condition with the value to return when that condition is the first to hold.
+type SwitchCase interface{ switchCase() switchCase }
+
+type switchCase struct {
+	cond Expr
+	then Expr
+}
+
+func (c switchCase) switchCase() switchCase { return c }
+
+// Case constructs a single Switch branch that returns then when cond is true ($switch branch).
+func Case[T BoolResolver](cond T, then Expr) SwitchCase {
+	return switchCase{cond: cond, then: then}
+}
+
 // Ceil returns the smallest integer greater than or equal to the number ($ceil).
 func Ceil[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$ceil", Value: expr}}}
@@ -170,7 +186,9 @@ func Cmp(a Expr, b Expr) NumberExpr {
 }
 
 // Concat concatenates the given string expressions ($concat).
-func Concat[T StringResolver, U StringResolver](value T, values ...U) StringExpr {
+// Accepts any expression type (Expr = any) so that string literals, field paths,
+// and nested expressions can be mixed in a single call.
+func Concat(value Expr, values ...Expr) StringExpr {
 	v := make([]any, len(values)+1)
 	v[0] = value
 	for i := range values {
@@ -187,6 +205,15 @@ func ConcatArrays[T ArrayResolver, U ArrayResolver](array T, arrays ...U) ArrayE
 		v[i+1] = arrays[i]
 	}
 	return ArrayExpr{expr: bson.D{{Key: "$concatArrays", Value: v}}}
+}
+
+// Cond evaluates ifExpr and returns then when it is true, otherwise elseExpr ($cond).
+func Cond[T BoolResolver](ifExpr T, then Expr, elseExpr Expr) AnyExpr {
+	return AnyExpr{expr: bson.D{{Key: "$cond", Value: bson.D{
+		{Key: "if", Value: ifExpr},
+		{Key: "then", Value: then},
+		{Key: "else", Value: elseExpr},
+	}}}}
 }
 
 type convertOptions struct {
@@ -247,6 +274,11 @@ func Cos[T NumberResolver](expr T) NumberExpr {
 // Cosh returns the hyperbolic cosine of a value in radians ($cosh).
 func Cosh[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$cosh", Value: expr}}}
+}
+
+// CreateObjectId returns a new randomly generated ObjectId ($createObjectId).
+func CreateObjectId() AnyExpr {
+	return AnyExpr{expr: bson.D{{Key: "$createObjectId", Value: bson.D{}}}}
 }
 
 type dateAddOptions struct {
@@ -662,6 +694,33 @@ func DegreesToRadians[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$degreesToRadians", Value: expr}}}
 }
 
+type deserializeEJSONOptions struct {
+	onError    any
+	hasOnError bool
+}
+
+// WithDeserializeEJSONOnError sets the value returned if $deserializeEJSON encounters a conversion error.
+func WithDeserializeEJSONOnError(onError Expr) Option[deserializeEJSONOptions] {
+	return func(o *deserializeEJSONOptions) {
+		o.onError = onError
+		o.hasOnError = true
+	}
+}
+
+// DeserializeEJSON converts an Extended JSON document into native BSON values ($deserializeEJSON).
+// Optionally provide a fallback value via WithDeserializeEJSONOnError.
+func DeserializeEJSON(input Expr, opts ...Option[deserializeEJSONOptions]) ObjectExpr {
+	var o deserializeEJSONOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	doc := bson.D{{Key: "input", Value: input}}
+	if o.hasOnError {
+		doc = append(doc, bson.E{Key: "onError", Value: o.onError})
+	}
+	return ObjectExpr{expr: bson.D{{Key: "$deserializeEJSON", Value: doc}}}
+}
+
 // Divide returns a divided by b ($divide).
 func Divide[T NumberResolver, U NumberResolver](a T, b U) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$divide", Value: bson.A{a, b}}}}
@@ -678,13 +737,21 @@ func Exp[T NumberResolver](exponent T) NumberExpr {
 }
 
 type filterOptions struct {
-	as    any
-	limit any
+	as           any
+	arrayIndexAs any
+	limit        any
 }
 
 func WithFilterAs(as string) Option[filterOptions] {
 	return func(o *filterOptions) {
 		o.as = as
+	}
+}
+
+// WithFilterArrayIndexAs names the variable that represents the index of the current element (MongoDB 8.3+).
+func WithFilterArrayIndexAs(arrayIndexAs string) Option[filterOptions] {
+	return func(o *filterOptions) {
+		o.arrayIndexAs = arrayIndexAs
 	}
 }
 
@@ -694,10 +761,10 @@ func WithFilterLimit(limit Expr) Option[filterOptions] {
 	}
 }
 
-// FilterArray selects elements of input for which cond evaluates to true ($filter).
-// Optionally name the per-element variable via WithFilterAs (defaults to "this") and cap the
-// number of matching elements via WithFilterLimit.
-func FilterArray[T ArrayResolver, U BoolResolver](input T, cond U, opts ...Option[filterOptions]) ArrayExpr {
+// Filter selects elements of input for which cond evaluates to true ($filter).
+// Optionally name the per-element variable via WithFilterAs (defaults to "this") and the element
+// index variable via WithFilterArrayIndexAs, and cap the number of matching elements via WithFilterLimit.
+func Filter[T ArrayResolver, U BoolResolver](input T, cond U, opts ...Option[filterOptions]) ArrayExpr {
 	var o filterOptions
 	for _, opt := range opts {
 		opt(&o)
@@ -705,6 +772,9 @@ func FilterArray[T ArrayResolver, U BoolResolver](input T, cond U, opts ...Optio
 	args := bson.D{bson.E{Key: "input", Value: input}}
 	if o.as != nil {
 		args = append(args, bson.E{Key: "as", Value: o.as})
+	}
+	if o.arrayIndexAs != nil {
+		args = append(args, bson.E{Key: "arrayIndexAs", Value: o.arrayIndexAs})
 	}
 	args = append(args, bson.E{Key: "cond", Value: cond})
 	if o.limit != nil {
@@ -733,6 +803,36 @@ func FirstN[T ArrayResolver](n Expr, input T) ArrayExpr {
 // Floor returns the largest integer less than or equal to the number ($floor).
 func Floor[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$floor", Value: expr}}}
+}
+
+type functionOptions struct {
+	lang any
+}
+
+// WithFunctionLang sets the language of the $function body; defaults to "js".
+func WithFunctionLang(lang string) Option[functionOptions] {
+	return func(o *functionOptions) {
+		o.lang = lang
+	}
+}
+
+// Function defines and invokes a custom function ($function).
+// args are passed to the function body in order; the language defaults to "js"
+// unless overridden via WithFunctionLang.
+func Function(body string, args []Expr, opts ...Option[functionOptions]) AnyExpr {
+	var o functionOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	lang := "js"
+	if o.lang != nil {
+		lang = o.lang.(string)
+	}
+	return AnyExpr{expr: bson.D{{Key: "$function", Value: bson.D{
+		{Key: "body", Value: bson.JavaScript(body)},
+		{Key: "args", Value: args},
+		{Key: "lang", Value: lang},
+	}}}}
 }
 
 type getFieldOptions struct {
@@ -768,6 +868,22 @@ func Gt(a Expr, b Expr) BoolExpr {
 // Gte returns true if a is greater than or equal to b ($gte).
 func Gte(a Expr, b Expr) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$gte", Value: bson.A{a, b}}}}
+}
+
+// Hash generates a binary hash (BinData) of a string or binary input using the named algorithm ($hash).
+func Hash(input Expr, algorithm string) AnyExpr {
+	return AnyExpr{expr: bson.D{{Key: "$hash", Value: bson.D{
+		{Key: "input", Value: input},
+		{Key: "algorithm", Value: algorithm},
+	}}}}
+}
+
+// HexHash generates an uppercase hexadecimal string hash of a string or binary input using the named algorithm ($hexHash).
+func HexHash(input Expr, algorithm string) StringExpr {
+	return StringExpr{expr: bson.D{{Key: "$hexHash", Value: bson.D{
+		{Key: "input", Value: input},
+		{Key: "algorithm", Value: algorithm},
+	}}}}
 }
 
 // Hour returns the hour for a date, from 0 to 23 ($hour).
@@ -917,6 +1033,25 @@ func LastN[T ArrayResolver](n Expr, input T) ArrayExpr {
 	}}}}
 }
 
+// Let binds variables for use within the scope of the in subexpression and returns its result ($let).
+// Build the variable bindings with Assign.
+func Let(vars []SetField, in Expr) AnyExpr {
+	varsDoc := make(bson.D, len(vars))
+	for i, v := range vars {
+		sf := v.setField()
+		varsDoc[i] = bson.E{Key: sf.name, Value: sf.expr}
+	}
+	return AnyExpr{expr: bson.D{{Key: "$let", Value: bson.D{
+		{Key: "vars", Value: varsDoc},
+		{Key: "in", Value: in},
+	}}}}
+}
+
+// Literal returns a value without parsing it as an expression ($literal).
+func Literal(value Expr) AnyExpr {
+	return AnyExpr{expr: bson.D{{Key: "$literal", Value: value}}}
+}
+
 // Ln calculates the natural logarithm of a number ($ln).
 func Ln[T NumberResolver](number T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$ln", Value: number}}}
@@ -956,6 +1091,44 @@ func Ltrim[T StringResolver](input T, opts ...Option[trimOptions]) StringExpr {
 	return StringExpr{expr: bson.D{{Key: "$ltrim", Value: args}}}
 }
 
+type mapOptions struct {
+	as           any
+	arrayIndexAs any
+}
+
+// WithMapAs names the variable that represents each element of the input array; defaults to "this".
+func WithMapAs(as string) Option[mapOptions] {
+	return func(o *mapOptions) {
+		o.as = as
+	}
+}
+
+// WithMapArrayIndexAs names the variable that represents the index of the current element (MongoDB 8.3+).
+func WithMapArrayIndexAs(arrayIndexAs string) Option[mapOptions] {
+	return func(o *mapOptions) {
+		o.arrayIndexAs = arrayIndexAs
+	}
+}
+
+// Map applies the in subexpression to each element of the input array and returns the resulting array ($map).
+// Optionally name the per-element variable via WithMapAs (defaults to "this") and the element
+// index variable via WithMapArrayIndexAs.
+func Map[T ArrayResolver](input T, in Expr, opts ...Option[mapOptions]) ArrayExpr {
+	var o mapOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	args := bson.D{{Key: "input", Value: input}}
+	if o.as != nil {
+		args = append(args, bson.E{Key: "as", Value: o.as})
+	}
+	if o.arrayIndexAs != nil {
+		args = append(args, bson.E{Key: "arrayIndexAs", Value: o.arrayIndexAs})
+	}
+	args = append(args, bson.E{Key: "in", Value: in})
+	return ArrayExpr{expr: bson.D{{Key: "$map", Value: args}}}
+}
+
 // Max returns the maximum value among the given expressions ($max).
 // Accepts any expression type (Expr = any).
 func Max(value Expr, values ...Expr) AnyExpr {
@@ -977,10 +1150,25 @@ func MaxN[T ArrayResolver](n Expr, input T) ArrayExpr {
 	}}}}
 }
 
+// Median returns an approximation of the median (50th percentile) as a scalar ($median).
+func Median(input Expr) NumberExpr {
+	return NumberExpr{expr: bson.D{{Key: "$median", Value: bson.D{
+		{Key: "input", Value: input},
+		// Currently the method must always be "approximate". If this changes, we need to
+		// add an argument for this.
+		{Key: "method", Value: "approximate"},
+	}}}}
+}
+
 // MergeObjects combines multiple documents into a single document ($mergeObjects).
 // Each argument must resolve to a document.
 func MergeObjects(documents ...Expr) ObjectExpr {
 	return ObjectExpr{expr: bson.D{{Key: "$mergeObjects", Value: documents}}}
+}
+
+// Meta accesses per-document metadata (such as "textScore" or "indexKey") for the aggregation ($meta).
+func Meta(keyword string) AnyExpr {
+	return AnyExpr{expr: bson.D{{Key: "$meta", Value: keyword}}}
 }
 
 // Millisecond returns the millisecond portion of a date, from 0 to 999 ($millisecond).
@@ -1060,6 +1248,18 @@ func Or[T BoolResolver](exprs ...T) BoolExpr {
 	return BoolExpr{expr: bson.D{{Key: "$or", Value: a}}}
 }
 
+// Percentile returns an array of scalar values corresponding to the requested percentiles ($percentile).
+// p lists the percentiles to compute (each in the range 0.0 to 1.0).
+func Percentile(input Expr, p Expr) ArrayExpr {
+	return ArrayExpr{expr: bson.D{{Key: "$percentile", Value: bson.D{
+		{Key: "input", Value: input},
+		{Key: "p", Value: p},
+		// Currently the method must always be "approximate". If this changes, we need to
+		// add an argument for this.
+		{Key: "method", Value: "approximate"},
+	}}}}
+}
+
 // Pow raises number to the specified exponent ($pow).
 func Pow[T NumberResolver, U NumberResolver](number T, exponent U) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$pow", Value: bson.A{number, exponent}}}}
@@ -1068,6 +1268,11 @@ func Pow[T NumberResolver, U NumberResolver](number T, exponent U) NumberExpr {
 // RadiansToDegrees converts a value from radians to degrees ($radiansToDegrees).
 func RadiansToDegrees[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$radiansToDegrees", Value: expr}}}
+}
+
+// Rand returns a random float between 0 and 1 ($rand).
+func Rand() NumberExpr {
+	return NumberExpr{expr: bson.D{{Key: "$rand", Value: bson.D{}}}}
 }
 
 type rangeOptions struct {
@@ -1092,6 +1297,59 @@ func Range[T NumberResolver, U NumberResolver](start T, end U, opts ...Option[ra
 		args = append(args, o.step)
 	}
 	return ArrayExpr{expr: bson.D{{Key: "$range", Value: args}}}
+}
+
+type reduceOptions struct {
+	as           any
+	valueAs      any
+	arrayIndexAs any
+}
+
+// WithReduceAs names the variable that represents each element of the input array; defaults to "this" (MongoDB 8.3+).
+func WithReduceAs(as string) Option[reduceOptions] {
+	return func(o *reduceOptions) {
+		o.as = as
+	}
+}
+
+// WithReduceValueAs names the variable that represents the cumulative value; defaults to "value" (MongoDB 8.3+).
+func WithReduceValueAs(valueAs string) Option[reduceOptions] {
+	return func(o *reduceOptions) {
+		o.valueAs = valueAs
+	}
+}
+
+// WithReduceArrayIndexAs names the variable that represents the index of the current element (MongoDB 8.3+).
+func WithReduceArrayIndexAs(arrayIndexAs string) Option[reduceOptions] {
+	return func(o *reduceOptions) {
+		o.arrayIndexAs = arrayIndexAs
+	}
+}
+
+// Reduce applies the in subexpression to each element of the input array, accumulating a single
+// result starting from initialValue ($reduce). The in expression may reference $$value (the
+// accumulated value) and $$this (the current element). Rename those variables and expose the
+// element index via WithReduceValueAs, WithReduceAs, and WithReduceArrayIndexAs.
+func Reduce[T ArrayResolver](input T, initialValue Expr, in Expr, opts ...Option[reduceOptions]) AnyExpr {
+	var o reduceOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	doc := bson.D{
+		{Key: "input", Value: input},
+		{Key: "initialValue", Value: initialValue},
+		{Key: "in", Value: in},
+	}
+	if o.as != nil {
+		doc = append(doc, bson.E{Key: "as", Value: o.as})
+	}
+	if o.valueAs != nil {
+		doc = append(doc, bson.E{Key: "valueAs", Value: o.valueAs})
+	}
+	if o.arrayIndexAs != nil {
+		doc = append(doc, bson.E{Key: "arrayIndexAs", Value: o.arrayIndexAs})
+	}
+	return AnyExpr{expr: bson.D{{Key: "$reduce", Value: doc}}}
 }
 
 type regexOptions struct {
@@ -1213,6 +1471,44 @@ func Second[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts 
 	return datePart("$second", date, opts...)
 }
 
+type serializeEJSONOptions struct {
+	relaxed    any
+	onError    any
+	hasOnError bool
+}
+
+// WithSerializeEJSONRelaxed selects Relaxed Extended JSON output when true; defaults to Canonical.
+func WithSerializeEJSONRelaxed[T BoolResolver](relaxed T) Option[serializeEJSONOptions] {
+	return func(o *serializeEJSONOptions) {
+		o.relaxed = relaxed
+	}
+}
+
+// WithSerializeEJSONOnError sets the value returned if $serializeEJSON encounters a conversion error.
+func WithSerializeEJSONOnError(onError Expr) Option[serializeEJSONOptions] {
+	return func(o *serializeEJSONOptions) {
+		o.onError = onError
+		o.hasOnError = true
+	}
+}
+
+// SerializeEJSON converts a BSON value into an Extended JSON document ($serializeEJSON).
+// Optionally select Relaxed output via WithSerializeEJSONRelaxed and a fallback via WithSerializeEJSONOnError.
+func SerializeEJSON(input Expr, opts ...Option[serializeEJSONOptions]) ObjectExpr {
+	var o serializeEJSONOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	doc := bson.D{{Key: "input", Value: input}}
+	if o.relaxed != nil {
+		doc = append(doc, bson.E{Key: "relaxed", Value: o.relaxed})
+	}
+	if o.hasOnError {
+		doc = append(doc, bson.E{Key: "onError", Value: o.onError})
+	}
+	return ObjectExpr{expr: bson.D{{Key: "$serializeEJSON", Value: doc}}}
+}
+
 // SetDifference returns elements in the first set but not the second ($setDifference).
 func SetDifference[T ArrayResolver, U ArrayResolver](expr1 T, expr2 U) ArrayExpr {
 	return ArrayExpr{expr: bson.D{{Key: "$setDifference", Value: bson.A{expr1, expr2}}}}
@@ -1264,6 +1560,47 @@ func SetUnion[T ArrayResolver](exprs ...T) ArrayExpr {
 // Sigmoid returns 1 / (1 + e^(-x)) ($sigmoid).
 func Sigmoid[T NumberResolver](expr T) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$sigmoid", Value: expr}}}
+}
+
+type similarityOptions struct {
+	score any
+}
+
+// WithSimilarityScore normalizes the similarity result to a value between 0 and 1 when true.
+func WithSimilarityScore(score bool) Option[similarityOptions] {
+	return func(o *similarityOptions) {
+		o.score = score
+	}
+}
+
+// SimilarityCosine returns the cosine similarity between two equal-length vectors ($similarityCosine).
+// Optionally normalize the result for use as a vector search score via WithSimilarityScore.
+func SimilarityCosine[T ArrayResolver, U ArrayResolver](a T, b U, opts ...Option[similarityOptions]) NumberExpr {
+	return similarity("$similarityCosine", a, b, opts...)
+}
+
+// SimilarityDotProduct returns the dot product similarity between two equal-length vectors ($similarityDotProduct).
+// Optionally normalize the result for use as a vector search score via WithSimilarityScore.
+func SimilarityDotProduct[T ArrayResolver, U ArrayResolver](a T, b U, opts ...Option[similarityOptions]) NumberExpr {
+	return similarity("$similarityDotProduct", a, b, opts...)
+}
+
+// SimilarityEuclidean returns the Euclidean similarity between two equal-length vectors ($similarityEuclidean).
+// Optionally normalize the result for use as a vector search score via WithSimilarityScore.
+func SimilarityEuclidean[T ArrayResolver, U ArrayResolver](a T, b U, opts ...Option[similarityOptions]) NumberExpr {
+	return similarity("$similarityEuclidean", a, b, opts...)
+}
+
+func similarity[T ArrayResolver, U ArrayResolver](op string, a T, b U, opts ...Option[similarityOptions]) NumberExpr {
+	var o similarityOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	doc := bson.D{{Key: "vectors", Value: bson.A{a, b}}}
+	if o.score != nil {
+		doc = append(doc, bson.E{Key: "score", Value: o.score})
+	}
+	return NumberExpr{expr: bson.D{{Key: op, Value: doc}}}
 }
 
 // Sin returns the sine of a value in radians ($sin).
@@ -1394,6 +1731,39 @@ func Subtype(expr Expr) NumberExpr {
 // Sum returns the sum of numeric expressions ($sum).
 func Sum(exprs ...Expr) NumberExpr {
 	return NumberExpr{expr: bson.D{{Key: "$sum", Value: exprs}}}
+}
+
+type switchOptions struct {
+	defaultVal any
+	hasDefault bool
+}
+
+// WithSwitchDefault sets the value returned when no branch case evaluates to true.
+func WithSwitchDefault(defaultVal Expr) Option[switchOptions] {
+	return func(o *switchOptions) {
+		o.defaultVal = defaultVal
+		o.hasDefault = true
+	}
+}
+
+// Switch evaluates each branch case in order and returns the then value of the first case that is
+// true ($switch). Build branches with Case. Optionally provide a fallback via WithSwitchDefault;
+// without one, an unmatched input produces a runtime error.
+func Switch(branches []SwitchCase, opts ...Option[switchOptions]) AnyExpr {
+	var o switchOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	b := make(bson.A, len(branches))
+	for i, br := range branches {
+		c := br.switchCase()
+		b[i] = bson.D{{Key: "case", Value: c.cond}, {Key: "then", Value: c.then}}
+	}
+	doc := bson.D{{Key: "branches", Value: b}}
+	if o.hasDefault {
+		doc = append(doc, bson.E{Key: "default", Value: o.defaultVal})
+	}
+	return AnyExpr{expr: bson.D{{Key: "$switch", Value: doc}}}
 }
 
 // Tan returns the tangent of a value in radians ($tan).

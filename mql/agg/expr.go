@@ -25,7 +25,7 @@ type StringResolver interface {
 }
 
 type BoolResolver interface {
-	AnyExpr | BoolExpr | bool
+	AnyExpr | BoolExpr | bool | string
 }
 
 type ObjectResolver interface {
