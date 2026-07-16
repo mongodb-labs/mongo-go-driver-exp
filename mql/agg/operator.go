@@ -260,9 +260,8 @@ func WithDateAddTimezone[T StringResolver](timezone T) Option[dateAddOptions] {
 }
 
 // DateAdd adds a number of time units to a date ($dateAdd).
-// startDate may resolve to a Date, Timestamp, or ObjectID; unit is a time unit
-// such as "day" or "hour"; amount resolves to an int or long.
-func DateAdd[A NumberResolver](startDate Expr, unit string, amount A, opts ...Option[dateAddOptions]) DateExpr {
+// unit is a time unit such as "day" or "hour"; amount resolves to an int or long.
+func DateAdd[T DateResolver | TimestampResolver | ObjectIDResolver, A NumberResolver](startDate T, unit string, amount A, opts ...Option[dateAddOptions]) DateExpr {
 	var o dateAddOptions
 	for _, opt := range opts {
 		opt(&o)
@@ -294,8 +293,7 @@ func WithDateDiffStartOfWeek[T StringResolver](startOfWeek T) Option[dateDiffOpt
 }
 
 // DateDiff returns the difference between two dates measured in unit ($dateDiff).
-// startDate and endDate may resolve to a Date, Timestamp, or ObjectID.
-func DateDiff(startDate Expr, endDate Expr, unit string, opts ...Option[dateDiffOptions]) NumberExpr {
+func DateDiff[S DateResolver | TimestampResolver | ObjectIDResolver, E DateResolver | TimestampResolver | ObjectIDResolver](startDate S, endDate E, unit string, opts ...Option[dateDiffOptions]) NumberExpr {
 	var o dateDiffOptions
 	for _, opt := range opts {
 		opt(&o)
@@ -487,9 +485,8 @@ func WithDateSubtractTimezone[T StringResolver](timezone T) Option[dateSubtractO
 }
 
 // DateSubtract subtracts a number of time units from a date ($dateSubtract).
-// startDate may resolve to a Date, Timestamp, or ObjectID; unit is a time unit
-// such as "day" or "hour"; amount resolves to an int or long.
-func DateSubtract[A NumberResolver](startDate Expr, unit string, amount A, opts ...Option[dateSubtractOptions]) DateExpr {
+// unit is a time unit such as "day" or "hour"; amount resolves to an int or long.
+func DateSubtract[T DateResolver | TimestampResolver | ObjectIDResolver, A NumberResolver](startDate T, unit string, amount A, opts ...Option[dateSubtractOptions]) DateExpr {
 	var o dateSubtractOptions
 	for _, opt := range opts {
 		opt(&o)
@@ -521,8 +518,7 @@ func WithDateToPartsIso8601(iso8601 bool) Option[dateToPartsOptions] {
 }
 
 // DateToParts returns a document containing the constituent parts of a date ($dateToParts).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func DateToParts(date Expr, opts ...Option[dateToPartsOptions]) ObjectExpr {
+func DateToParts[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts ...Option[dateToPartsOptions]) ObjectExpr {
 	var o dateToPartsOptions
 	for _, opt := range opts {
 		opt(&o)
@@ -559,8 +555,7 @@ func WithDateToStringOnNull(onNull Expr) Option[dateToStringOptions] {
 }
 
 // DateToString returns the date as a formatted string ($dateToString).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func DateToString(date Expr, opts ...Option[dateToStringOptions]) StringExpr {
+func DateToString[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts ...Option[dateToStringOptions]) StringExpr {
 	var o dateToStringOptions
 	for _, opt := range opts {
 		opt(&o)
@@ -600,8 +595,7 @@ func WithDateTruncStartOfWeek[T StringResolver](startOfWeek T) Option[dateTruncO
 }
 
 // DateTrunc truncates a date to the given unit ($dateTrunc).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func DateTrunc(date Expr, unit string, opts ...Option[dateTruncOptions]) DateExpr {
+func DateTrunc[T DateResolver | TimestampResolver | ObjectIDResolver](date T, unit string, opts ...Option[dateTruncOptions]) DateExpr {
 	var o dateTruncOptions
 	for _, opt := range opts {
 		opt(&o)
@@ -649,20 +643,17 @@ func datePart(op string, date Expr, opts ...Option[datePartOptions]) NumberExpr 
 }
 
 // DayOfMonth returns the day of the month for a date, from 1 to 31 ($dayOfMonth).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func DayOfMonth(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+func DayOfMonth[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts ...Option[datePartOptions]) NumberExpr {
 	return datePart("$dayOfMonth", date, opts...)
 }
 
 // DayOfWeek returns the day of the week for a date, from 1 (Sunday) to 7 (Saturday) ($dayOfWeek).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func DayOfWeek(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+func DayOfWeek[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts ...Option[datePartOptions]) NumberExpr {
 	return datePart("$dayOfWeek", date, opts...)
 }
 
 // DayOfYear returns the day of the year for a date, from 1 to 366 ($dayOfYear).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func DayOfYear(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+func DayOfYear[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts ...Option[datePartOptions]) NumberExpr {
 	return datePart("$dayOfYear", date, opts...)
 }
 
@@ -780,8 +771,7 @@ func Gte(a Expr, b Expr) BoolExpr {
 }
 
 // Hour returns the hour for a date, from 0 to 23 ($hour).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func Hour(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+func Hour[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts ...Option[datePartOptions]) NumberExpr {
 	return datePart("$hour", date, opts...)
 }
 
@@ -896,20 +886,17 @@ func IsNumber(expr Expr) BoolExpr {
 }
 
 // IsoDayOfWeek returns the ISO 8601 weekday number, from 1 (Monday) to 7 (Sunday) ($isoDayOfWeek).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func IsoDayOfWeek(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+func IsoDayOfWeek[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts ...Option[datePartOptions]) NumberExpr {
 	return datePart("$isoDayOfWeek", date, opts...)
 }
 
 // IsoWeek returns the ISO 8601 week number, from 1 to 53 ($isoWeek).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func IsoWeek(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+func IsoWeek[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts ...Option[datePartOptions]) NumberExpr {
 	return datePart("$isoWeek", date, opts...)
 }
 
 // IsoWeekYear returns the year number in ISO 8601 format ($isoWeekYear).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func IsoWeekYear(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+func IsoWeekYear[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts ...Option[datePartOptions]) NumberExpr {
 	return datePart("$isoWeekYear", date, opts...)
 }
 
@@ -997,8 +984,7 @@ func MergeObjects(documents ...Expr) ObjectExpr {
 }
 
 // Millisecond returns the millisecond portion of a date, from 0 to 999 ($millisecond).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func Millisecond(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+func Millisecond[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts ...Option[datePartOptions]) NumberExpr {
 	return datePart("$millisecond", date, opts...)
 }
 
@@ -1024,8 +1010,7 @@ func MinN[T ArrayResolver](n Expr, input T) ArrayExpr {
 }
 
 // Minute returns the minute for a date, from 0 to 59 ($minute).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func Minute(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+func Minute[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts ...Option[datePartOptions]) NumberExpr {
 	return datePart("$minute", date, opts...)
 }
 
@@ -1035,8 +1020,7 @@ func Mod[T NumberResolver, U NumberResolver](dividend T, divisor U) NumberExpr {
 }
 
 // Month returns the month for a date, from 1 (January) to 12 (December) ($month).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func Month(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+func Month[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts ...Option[datePartOptions]) NumberExpr {
 	return datePart("$month", date, opts...)
 }
 
@@ -1225,8 +1209,7 @@ func Rtrim[T StringResolver](input T, opts ...Option[trimOptions]) StringExpr {
 }
 
 // Second returns the seconds for a date, from 0 to 60 (leap seconds) ($second).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func Second(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+func Second[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts ...Option[datePartOptions]) NumberExpr {
 	return datePart("$second", date, opts...)
 }
 
@@ -1614,14 +1597,12 @@ func TsSecond[T TimestampResolver](expr T) NumberExpr {
 }
 
 // Week returns the week number for a date, from 0 to 53 ($week).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func Week(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+func Week[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts ...Option[datePartOptions]) NumberExpr {
 	return datePart("$week", date, opts...)
 }
 
 // Year returns the year for a date ($year).
-// date may resolve to a Date, Timestamp, or ObjectID.
-func Year(date Expr, opts ...Option[datePartOptions]) NumberExpr {
+func Year[T DateResolver | TimestampResolver | ObjectIDResolver](date T, opts ...Option[datePartOptions]) NumberExpr {
 	return datePart("$year", date, opts...)
 }
 

@@ -37,7 +37,11 @@ type DateResolver interface {
 }
 
 type TimestampResolver interface {
-	AnyExpr | TimestampExpr | bson.Timestamp | string
+	AnyExpr | bson.Timestamp | string
+}
+
+type ObjectIDResolver interface {
+	AnyExpr | bson.ObjectID | string
 }
 
 type Expr any
@@ -123,14 +127,5 @@ type DateExpr struct {
 
 func (de DateExpr) MarshalBSONValue() (byte, []byte, error) {
 	typ, b, err := bson.MarshalValue(de.expr)
-	return byte(typ), b, err
-}
-
-type TimestampExpr struct {
-	expr Expr
-}
-
-func (te TimestampExpr) MarshalBSONValue() (byte, []byte, error) {
-	typ, b, err := bson.MarshalValue(te.expr)
 	return byte(typ), b, err
 }
