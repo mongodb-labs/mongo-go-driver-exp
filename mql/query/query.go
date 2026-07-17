@@ -23,14 +23,18 @@ func (f Filter) MarshalBSON() ([]byte, error) {
 	return bson.Marshal(f.doc)
 }
 
-// Field creates a Filter for the named field. cond may be a FieldCondition
-// (constructed via Eq, Gt, etc.) for operator matches, or any plain value
-// for an implicit equality match: { field: value }.
-func Field(name string, cond any) Filter {
-	if fc, ok := cond.(FieldCondition); ok {
-		return Filter{doc: bson.D{{Key: name, Value: fc.doc}}}
+// Field creates a Filter for the named field from one or more FieldConditions
+// (constructed via Eq, Gt, etc.). Multiple conditions are merged into a single
+// document to apply several conditions to the same field, e.g.
+//
+//	query.Field("qty", query.Exists(true), query.Nin(5, 15))
+//	// { qty: { $exists: true, $nin: [ 5, 15 ] } }
+func Field(name string, conds ...FieldCondition) Filter {
+	merged := bson.D{}
+	for _, c := range conds {
+		merged = append(merged, c.doc...)
 	}
-	return Filter{doc: bson.D{{Key: name, Value: cond}}}
+	return Filter{doc: bson.D{{Key: name, Value: merged}}}
 }
 
 // Eq creates a FieldCondition for equality: { $eq: value }.
@@ -58,14 +62,13 @@ func Lte(value any) FieldCondition {
 	return FieldCondition{doc: bson.D{{Key: "$lte", Value: value}}}
 }
 
-// And creates a Filter that merges all given filters into a single document,
-// producing an implicit AND: { field1: cond1, field2: cond2, ... }.
+// And creates a Filter for logical AND: { $and: [ filter1, filter2, ... ] }.
 func And(filters ...Filter) Filter {
-	var merged bson.D
+	clauses := make(bson.A, 0, len(filters))
 	for _, f := range filters {
-		merged = append(merged, f.doc...)
+		clauses = append(clauses, f.doc)
 	}
-	return Filter{doc: merged}
+	return Filter{doc: bson.D{{Key: "$and", Value: clauses}}}
 }
 
 // Or creates a Filter for logical OR: { $or: [ filter1, filter2, ... ] }.
