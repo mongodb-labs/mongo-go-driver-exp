@@ -23,13 +23,16 @@ func (p Pipeline) MarshalBSON() ([]byte, error) {
 
 // --- $match ---
 
-// MatchStage produces a $match stage from one or more query.Filters.
-// Multiple filters are merged into a single document (implicit AND).
-// Build filters in the query sub-package, e.g.:
+// MatchStage produces a $match stage from one or more query.Filters. Multiple
+// filters are merged into a single document (implicit AND). Build filters in
+// the query sub-package, e.g.:
 //
-//	agg.MatchStage(query.Field("qty", query.Gt(20)), query.Field("name", "Alice"))
+//	agg.MatchStage(query.Field("qty", query.Gt(20)), query.Field("name", query.Eq("Alice")))
 func MatchStage(filters ...query.Filter) Stage {
-	merged := query.And(filters...)
+	merged := bson.D{}
+	for _, f := range filters {
+		merged = append(merged, f...)
+	}
 	return Stage{{Key: "$match", Value: merged}}
 }
 

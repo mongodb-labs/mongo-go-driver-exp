@@ -88,7 +88,7 @@ func TestSetStage_OverwriteExistingField(t *testing.T) {
 
 func TestProjectStage_IncludeSpecificFieldsInOutputDocs(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("title", "The Great Train Robbery")),
+		agg.MatchStage(query.Field("title", query.Eq("The Great Train Robbery"))),
 		agg.ProjectStage(
 			agg.Include("title"),
 			agg.Include("rated"),
@@ -96,7 +96,7 @@ func TestProjectStage_IncludeSpecificFieldsInOutputDocs(t *testing.T) {
 		agg.LimitStage(1),
 	}
 	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: "The Great Train Robbery"}}}},
+		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: bson.D{{Key: "$eq", Value: "The Great Train Robbery"}}}}}},
 		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "title", Value: 1},
 			{Key: "rated", Value: 1},
@@ -108,7 +108,7 @@ func TestProjectStage_IncludeSpecificFieldsInOutputDocs(t *testing.T) {
 
 func TestProjectStage_SuppressIdFieldInOutputDocs(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("title", "The Great Train Robbery")),
+		agg.MatchStage(query.Field("title", query.Eq("The Great Train Robbery"))),
 		agg.ProjectStage(
 			agg.Exclude("_id"),
 			agg.Include("title"),
@@ -117,7 +117,7 @@ func TestProjectStage_SuppressIdFieldInOutputDocs(t *testing.T) {
 		agg.LimitStage(1),
 	}
 	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: "The Great Train Robbery"}}}},
+		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: bson.D{{Key: "$eq", Value: "The Great Train Robbery"}}}}}},
 		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "_id", Value: 0},
 			{Key: "title", Value: 1},
@@ -130,12 +130,12 @@ func TestProjectStage_SuppressIdFieldInOutputDocs(t *testing.T) {
 
 func TestProjectStage_ExcludeFieldsFromOutputDocs(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("title", "The Great Train Robbery")),
+		agg.MatchStage(query.Field("title", query.Eq("The Great Train Robbery"))),
 		agg.ProjectStage(agg.Exclude("rated")),
 		agg.LimitStage(1),
 	}
 	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: "The Great Train Robbery"}}}},
+		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: bson.D{{Key: "$eq", Value: "The Great Train Robbery"}}}}}},
 		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "rated", Value: 0},
 		}}},
@@ -146,7 +146,7 @@ func TestProjectStage_ExcludeFieldsFromOutputDocs(t *testing.T) {
 
 func TestProjectStage_ExcludeFieldsFromEmbeddedDocs(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("title", "The Great Train Robbery")),
+		agg.MatchStage(query.Field("title", query.Eq("The Great Train Robbery"))),
 		agg.ProjectStage(
 			agg.Exclude("imdb.id"),
 			agg.Exclude("type"),
@@ -154,7 +154,7 @@ func TestProjectStage_ExcludeFieldsFromEmbeddedDocs(t *testing.T) {
 		agg.LimitStage(1),
 	}
 	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: "The Great Train Robbery"}}}},
+		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: bson.D{{Key: "$eq", Value: "The Great Train Robbery"}}}}}},
 		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "imdb.id", Value: 0},
 			{Key: "type", Value: 0},
@@ -166,12 +166,12 @@ func TestProjectStage_ExcludeFieldsFromEmbeddedDocs(t *testing.T) {
 
 func TestProjectStage_IncludeSpecificFieldsFromEmbeddedDocs(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("title", "The Great Train Robbery")),
+		agg.MatchStage(query.Field("title", query.Eq("The Great Train Robbery"))),
 		agg.ProjectStage(agg.Include("imdb.rating")),
 		agg.LimitStage(1),
 	}
 	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: "The Great Train Robbery"}}}},
+		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: bson.D{{Key: "$eq", Value: "The Great Train Robbery"}}}}}},
 		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "imdb.rating", Value: 1},
 		}}},
@@ -184,7 +184,7 @@ func TestProjectStage_IncludeSpecificFieldsFromEmbeddedDocs(t *testing.T) {
 // when arrayElemAt operator is implemented
 func TestProjectStage_IncludeComputedFields(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("title", "The Great Train Robbery")),
+		agg.MatchStage(query.Field("title", query.Eq("The Great Train Robbery"))),
 		agg.ProjectStage(
 			agg.Include("title"),
 			agg.Compute("releaseYear", "$year"),
@@ -192,7 +192,7 @@ func TestProjectStage_IncludeComputedFields(t *testing.T) {
 		agg.LimitStage(1),
 	}
 	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: "The Great Train Robbery"}}}},
+		bson.D{{Key: "$match", Value: bson.D{{Key: "title", Value: bson.D{{Key: "$eq", Value: "The Great Train Robbery"}}}}}},
 		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "title", Value: 1},
 			{Key: "releaseYear", Value: "$year"},
@@ -216,13 +216,13 @@ func TestProjectStage_IncludeComputedFields(t *testing.T) {
 func TestMatchStage_EqualityMatch(t *testing.T) {
 	got := agg.Pipeline{
 		agg.MatchStage(
-			query.Field("rated", "TV-PG"),
+			query.Field("rated", query.Eq("TV-PG")),
 			query.Field("runtime", query.Gt(1000)),
 		),
 	}
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{
-			{Key: "rated", Value: "TV-PG"},
+			{Key: "rated", Value: bson.D{{Key: "$eq", Value: "TV-PG"}}},
 			{Key: "runtime", Value: bson.D{{Key: "$gt", Value: 1000}}},
 		}}},
 	}
@@ -231,6 +231,20 @@ func TestMatchStage_EqualityMatch(t *testing.T) {
 
 // TODO: implement TestMatchStage_PerformCount
 // after multi-condition field queries are supported in the query package
+
+func TestMatchStage_EmptyFieldCondition(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("x"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "x", Value: bson.D{}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
 
 // --- $group ---
 
