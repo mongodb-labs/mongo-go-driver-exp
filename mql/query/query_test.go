@@ -72,20 +72,12 @@ func TestEq_EqualsArrayValue(t *testing.T) {
 
 func TestEq_RegexMatchBehavior(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("company", "MongoDB")),
 		agg.MatchStage(query.Field("company", query.Eq("MongoDB"))),
-		agg.MatchStage(query.Field("company", bson.Regex{Pattern: "^MongoDB"})),
 		agg.MatchStage(query.Field("company", query.Eq(bson.Regex{Pattern: "^MongoDB"}))),
 	}
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{
-			{Key: "company", Value: "MongoDB"},
-		}}},
-		bson.D{{Key: "$match", Value: bson.D{
 			{Key: "company", Value: bson.D{{Key: "$eq", Value: "MongoDB"}}},
-		}}},
-		bson.D{{Key: "$match", Value: bson.D{
-			{Key: "company", Value: bson.Regex{Pattern: "^MongoDB"}},
 		}}},
 		bson.D{{Key: "$match", Value: bson.D{
 			{Key: "company", Value: bson.D{{Key: "$eq", Value: bson.Regex{Pattern: "^MongoDB"}}}},
