@@ -15,13 +15,7 @@ type FieldCondition struct{ doc bson.D }
 
 // Filter represents a complete MongoDB query document, e.g. { field: { $gt: v } }.
 // Construct via Field or the logical combinators And and Or.
-type Filter struct{ doc bson.D }
-
-// MarshalBSON implements bson.Marshaler so Filter can be passed directly as
-// a bson.D element value.
-func (f Filter) MarshalBSON() ([]byte, error) {
-	return bson.Marshal(f.doc)
-}
+type Filter bson.D
 
 // Field creates a Filter for the named field from one or more FieldConditions
 // (constructed via Eq, Gt, etc.). Multiple conditions are merged into a single
@@ -34,7 +28,7 @@ func Field(name string, conds ...FieldCondition) Filter {
 	for _, c := range conds {
 		merged = append(merged, c.doc...)
 	}
-	return Filter{doc: bson.D{{Key: name, Value: merged}}}
+	return Filter{{Key: name, Value: merged}}
 }
 
 // Eq creates a FieldCondition for equality: { $eq: value }.
@@ -66,16 +60,16 @@ func Lte(value any) FieldCondition {
 func And(filters ...Filter) Filter {
 	clauses := make(bson.A, 0, len(filters))
 	for _, f := range filters {
-		clauses = append(clauses, f.doc)
+		clauses = append(clauses, bson.D(f))
 	}
-	return Filter{doc: bson.D{{Key: "$and", Value: clauses}}}
+	return Filter{{Key: "$and", Value: clauses}}
 }
 
 // Or creates a Filter for logical OR: { $or: [ filter1, filter2, ... ] }.
 func Or(filters ...Filter) Filter {
 	clauses := make(bson.A, 0, len(filters))
 	for _, f := range filters {
-		clauses = append(clauses, f.doc)
+		clauses = append(clauses, bson.D(f))
 	}
-	return Filter{doc: bson.D{{Key: "$or", Value: clauses}}}
+	return Filter{{Key: "$or", Value: clauses}}
 }

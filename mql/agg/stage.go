@@ -31,11 +31,7 @@ func (p Pipeline) MarshalBSON() ([]byte, error) {
 func MatchStage(filters ...query.Filter) Stage {
 	merged := bson.D{}
 	for _, f := range filters {
-		raw, _ := f.MarshalBSON()
-		elems, _ := bson.Raw(raw).Elements()
-		for _, e := range elems {
-			merged = append(merged, bson.E{Key: e.Key(), Value: e.Value()})
-		}
+		merged = append(merged, f...)
 	}
 	return Stage{{Key: "$match", Value: merged}}
 }
