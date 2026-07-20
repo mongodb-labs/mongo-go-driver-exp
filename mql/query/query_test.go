@@ -28,6 +28,199 @@ func assertPipelineEqual(t *testing.T, pipeline agg.Pipeline, wantStages bson.A)
 	}
 }
 
+func TestAll_MatchValues(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("tags", query.All("appliance", "school", "book")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "tags", Value: bson.D{{Key: "$all", Value: bson.A{"appliance", "school", "book"}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestAll_WithElemMatch(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("qty", query.All(
+				query.ElemMatch(
+					query.Field("size", query.Eq("M")),
+					query.Field("num", query.Gt(50)),
+				),
+				query.ElemMatch(
+					query.Field("num", query.Eq(100)),
+					query.Field("color", query.Eq("green")),
+				),
+			)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "qty", Value: bson.D{{Key: "$all", Value: bson.A{
+				bson.D{{Key: "$elemMatch", Value: bson.D{
+					{Key: "size", Value: bson.D{{Key: "$eq", Value: "M"}}},
+					{Key: "num", Value: bson.D{{Key: "$gt", Value: 50}}},
+				}}},
+				bson.D{{Key: "$elemMatch", Value: bson.D{
+					{Key: "num", Value: bson.D{{Key: "$eq", Value: 100}}},
+					{Key: "color", Value: bson.D{{Key: "$eq", Value: "green"}}},
+				}}},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestAnd_MultipleExpressionsSameField(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.And(
+				query.Field("price", query.Ne(1.99)),
+				query.Field("price", query.Exists(true)),
+			),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$and", Value: bson.A{
+				bson.D{{Key: "price", Value: bson.D{{Key: "$ne", Value: 1.99}}}},
+				bson.D{{Key: "price", Value: bson.D{{Key: "$exists", Value: true}}}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestAnd_MultipleExpressionsSameOperator(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.And(
+				query.Or(
+					query.Field("qty", query.Lt(10)),
+					query.Field("qty", query.Gt(50)),
+				),
+				query.Or(
+					query.Field("sale", query.Eq(true)),
+					query.Field("price", query.Lt(5)),
+				),
+			),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$and", Value: bson.A{
+				bson.D{{Key: "$or", Value: bson.A{
+					bson.D{{Key: "qty", Value: bson.D{{Key: "$lt", Value: 10}}}},
+					bson.D{{Key: "qty", Value: bson.D{{Key: "$gt", Value: 50}}}},
+				}}},
+				bson.D{{Key: "$or", Value: bson.A{
+					bson.D{{Key: "sale", Value: bson.D{{Key: "$eq", Value: true}}}},
+					bson.D{{Key: "price", Value: bson.D{{Key: "$lt", Value: 5}}}},
+				}}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestElemMatch_ElementMatch(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("results", query.ElemMatch(query.Gte(80), query.Lt(85))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "results", Value: bson.D{{Key: "$elemMatch", Value: bson.D{
+				{Key: "$gte", Value: 80},
+				{Key: "$lt", Value: 85},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestElemMatch_ArrayOfEmbeddedDocuments(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("results", query.ElemMatch(
+				query.Field("product", query.Eq("xyz")),
+				query.Field("score", query.Gte(8)),
+			)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "results", Value: bson.D{{Key: "$elemMatch", Value: bson.D{
+				{Key: "product", Value: bson.D{{Key: "$eq", Value: "xyz"}}},
+				{Key: "score", Value: bson.D{{Key: "$gte", Value: 8}}},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestElemMatch_SingleQueryCondition(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("results", query.ElemMatch(
+				query.Field("product", query.Ne("xyz")),
+			)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "results", Value: bson.D{{Key: "$elemMatch", Value: bson.D{
+				{Key: "product", Value: bson.D{{Key: "$ne", Value: "xyz"}}},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestElemMatch_WithOr(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("game", query.ElemMatch(
+				query.Or(
+					query.Field("score", query.Gt(10)),
+					query.Field("score", query.Lt(5)),
+				),
+			)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "game", Value: bson.D{{Key: "$elemMatch", Value: bson.D{
+				{Key: "$or", Value: bson.A{
+					bson.D{{Key: "score", Value: bson.D{{Key: "$gt", Value: 10}}}},
+					bson.D{{Key: "score", Value: bson.D{{Key: "$lt", Value: 5}}}},
+				}},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestElemMatch_SingleFieldOperator(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("results", query.ElemMatch(query.Gt(10))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "results", Value: bson.D{{Key: "$elemMatch", Value: bson.D{
+				{Key: "$gt", Value: 10},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
 func TestEq_EqualsSpecificValue(t *testing.T) {
 	got := agg.Pipeline{
 		agg.MatchStage(
@@ -255,6 +448,136 @@ func TestNin_SelectOnElementsNotInArray(t *testing.T) {
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{
 			{Key: "tags", Value: bson.D{{Key: "$nin", Value: bson.A{"school"}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestNor_TwoExpressions(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Nor(
+				query.Field("price", query.Eq(1.99)),
+				query.Field("sale", query.Eq(true)),
+			),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$nor", Value: bson.A{
+				bson.D{{Key: "price", Value: bson.D{{Key: "$eq", Value: 1.99}}}},
+				bson.D{{Key: "sale", Value: bson.D{{Key: "$eq", Value: true}}}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestNor_AdditionalComparisons(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Nor(
+				query.Field("price", query.Eq(1.99)),
+				query.Field("qty", query.Lt(20)),
+				query.Field("sale", query.Eq(true)),
+			),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$nor", Value: bson.A{
+				bson.D{{Key: "price", Value: bson.D{{Key: "$eq", Value: 1.99}}}},
+				bson.D{{Key: "qty", Value: bson.D{{Key: "$lt", Value: 20}}}},
+				bson.D{{Key: "sale", Value: bson.D{{Key: "$eq", Value: true}}}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestNor_AndExists(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Nor(
+				query.Field("price", query.Eq(1.99)),
+				query.Field("price", query.Exists(false)),
+				query.Field("sale", query.Eq(true)),
+				query.Field("sale", query.Exists(false)),
+			),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$nor", Value: bson.A{
+				bson.D{{Key: "price", Value: bson.D{{Key: "$eq", Value: 1.99}}}},
+				bson.D{{Key: "price", Value: bson.D{{Key: "$exists", Value: false}}}},
+				bson.D{{Key: "sale", Value: bson.D{{Key: "$eq", Value: true}}}},
+				bson.D{{Key: "sale", Value: bson.D{{Key: "$exists", Value: false}}}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestNot_Syntax(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("price", query.Not(query.Gt(1.99))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "price", Value: bson.D{{Key: "$not", Value: bson.D{{Key: "$gt", Value: 1.99}}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestNot_RegularExpressions(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("price", query.Not(bson.Regex{Pattern: "^p.*"})),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "price", Value: bson.D{{Key: "$not", Value: bson.Regex{Pattern: "^p.*"}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestOr_Clauses(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Or(
+				query.Field("quantity", query.Lt(20)),
+				query.Field("price", query.Eq(10)),
+			),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$or", Value: bson.A{
+				bson.D{{Key: "quantity", Value: bson.D{{Key: "$lt", Value: 20}}}},
+				bson.D{{Key: "price", Value: bson.D{{Key: "$eq", Value: 10}}}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// TODO: implement TestOr_ErrorHandling when $expr is implemented
+
+func TestSize_QueryAnArrayByLength(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("tags", query.Size(3)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "tags", Value: bson.D{{Key: "$size", Value: 3}}},
 		}}},
 	}
 	assertPipelineEqual(t, got, want)

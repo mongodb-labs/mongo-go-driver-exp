@@ -31,6 +31,21 @@ func Field(name string, conds ...FieldCondition) Filter {
 	return Filter{{Key: name, Value: merged}}
 }
 
+// All creates a FieldCondition matching arrays that contain all of the given
+// values: { $all: [ ... ] }. Values are usually plain scalars, but may also be
+// ElemMatch conditions to match arrays of embedded documents.
+func All(values ...any) FieldCondition {
+	arr := make(bson.A, len(values))
+	for i, v := range values {
+		if fc, ok := v.(FieldCondition); ok {
+			arr[i] = fc.doc
+		} else {
+			arr[i] = v
+		}
+	}
+	return FieldCondition{doc: bson.D{{Key: "$all", Value: arr}}}
+}
+
 // And creates a Filter for logical AND: { $and: [ filter1, filter2, ... ] }.
 func And(filters ...Filter) Filter {
 	clauses := make(bson.A, 0, len(filters))
@@ -38,6 +53,23 @@ func And(filters ...Filter) Filter {
 		clauses = append(clauses, bson.D(f))
 	}
 	return Filter{{Key: "$and", Value: clauses}}
+}
+
+// ElemMatch creates a FieldCondition matching arrays with at least one element
+// that satisfies all of the given queries: { $elemMatch: { ... } }. Pass Filters
+// to match arrays of embedded documents (e.g. query.Field("product", query.Eq("xyz")))
+// or FieldConditions to match scalar elements (e.g. query.Gte(80), query.Lt(85)).
+func ElemMatch[T Filter | FieldCondition](queries ...T) FieldCondition {
+	inner := bson.D{}
+	for _, q := range queries {
+		switch v := any(q).(type) {
+		case Filter:
+			inner = append(inner, v...)
+		case FieldCondition:
+			inner = append(inner, v.doc...)
+		}
+	}
+	return FieldCondition{doc: bson.D{{Key: "$elemMatch", Value: inner}}}
 }
 
 // Eq creates a FieldCondition for equality: { $eq: value }.
@@ -84,6 +116,39 @@ func Ne(value any) FieldCondition {
 // Nin creates a FieldCondition matching none of the given values: { $nin: [ ... ] }.
 func Nin(values ...any) FieldCondition {
 	return FieldCondition{doc: bson.D{{Key: "$nin", Value: bson.A(values)}}}
+}
+
+// Nor creates a Filter for logical NOR, matching documents that fail every
+// clause: { $nor: [ filter1, filter2, ... ] }.
+func Nor(filters ...Filter) Filter {
+	clauses := make(bson.A, 0, len(filters))
+	for _, f := range filters {
+		clauses = append(clauses, bson.D(f))
+	}
+	return Filter{{Key: "$nor", Value: clauses}}
+}
+
+// Not creates a FieldCondition that inverts another field-level condition:
+// { $not: <arg> }. The argument may be a FieldCondition, e.g.
+// query.Not(query.Gt(1.99)) yields { $not: { $gt: 1.99 } }, or a bson.Regex,
+// e.g. query.Not(bson.Regex{Pattern: "^p.*"}) yields { $not: /^p.*/ }. MongoDB's
+// $not requires an operator expression or regex; it does not accept a plain
+// scalar value.
+func Not[T FieldCondition | bson.Regex](arg T) FieldCondition {
+	var value any
+	switch a := any(arg).(type) {
+	case FieldCondition:
+		value = a.doc
+	case bson.Regex:
+		value = a
+	}
+	return FieldCondition{doc: bson.D{{Key: "$not", Value: value}}}
+}
+
+// Size creates a FieldCondition matching arrays with the given number of
+// elements: { $size: value }.
+func Size(value int) FieldCondition {
+	return FieldCondition{doc: bson.D{{Key: "$size", Value: value}}}
 }
 
 // Type creates a FieldCondition matching documents where the field is one of the
