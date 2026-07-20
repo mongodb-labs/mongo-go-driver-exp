@@ -21,8 +21,8 @@ type Filter bson.D
 // (constructed via Eq, Gt, etc.). Multiple conditions are merged into a single
 // document to apply several conditions to the same field, e.g.
 //
-//	query.Field("qty", query.Exists(true), query.Nin(5, 15))
-//	// { qty: { $exists: true, $nin: [ 5, 15 ] } }
+//	query.Field("qty", query.Gt(5), query.Lt(15))
+//	// { qty: { $gt: 5, $lt: 15 } }
 func Field(name string, conds ...FieldCondition) Filter {
 	merged := bson.D{}
 	for _, c := range conds {
