@@ -232,6 +232,20 @@ func TestMatchStage_EqualityMatch(t *testing.T) {
 // TODO: implement TestMatchStage_PerformCount
 // after multi-condition field queries are supported in the query package
 
+func TestMatchStage_EmptyFieldCondition(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("x"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "x", Value: bson.D{}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
 // --- $group ---
 
 func TestGroupStage_CountNumDocsInColl(t *testing.T) {
