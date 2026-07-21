@@ -183,7 +183,7 @@ func TestAvgAccumulator_UseInGroupStage(t *testing.T) {
 
 func TestBottomAccumulator_FindBottomScore(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("gameId", "G1")),
+		agg.MatchStage(query.Field("gameId", query.Eq("G1"))),
 		agg.GroupStage(
 			"$gameId",
 			agg.Accumulate("playerId", agg.BottomAccumulator(
@@ -193,7 +193,7 @@ func TestBottomAccumulator_FindBottomScore(t *testing.T) {
 		),
 	}
 	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: "G1"}}}},
+		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: bson.D{{Key: "$eq", Value: "G1"}}}}}},
 		bson.D{{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: "$gameId"},
 			{Key: "playerId", Value: bson.D{{Key: "$bottom", Value: bson.D{
@@ -231,7 +231,7 @@ func TestBottomAccumulator_FindBottomScoreAcrossMultipleGames(t *testing.T) {
 
 func TestBottomNAccumulator_FindThreeLowestScores(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("gameId", "G1")),
+		agg.MatchStage(query.Field("gameId", query.Eq("G1"))),
 		agg.GroupStage(
 			"$gameId",
 			agg.Accumulate("playerId", agg.BottomNAccumulator(
@@ -242,7 +242,7 @@ func TestBottomNAccumulator_FindThreeLowestScores(t *testing.T) {
 		),
 	}
 	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: "G1"}}}},
+		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: bson.D{{Key: "$eq", Value: "G1"}}}}}},
 		bson.D{{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: "$gameId"},
 			{Key: "playerId", Value: bson.D{{Key: "$bottomN", Value: bson.D{
@@ -383,7 +383,7 @@ func TestFirstAccumulator_UseInGroupStage(t *testing.T) {
 
 func TestFirstNAccumulator_FindFirstThreePlayerScoresForSingleGame(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("gameId", "G1")),
+		agg.MatchStage(query.Field("gameId", query.Eq("G1"))),
 		agg.GroupStage(
 			"$gameId",
 			agg.Accumulate("firstThreeScores", agg.FirstNAccumulator(
@@ -393,7 +393,7 @@ func TestFirstNAccumulator_FindFirstThreePlayerScoresForSingleGame(t *testing.T)
 		),
 	}
 	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: "G1"}}}},
+		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: bson.D{{Key: "$eq", Value: "G1"}}}}}},
 		bson.D{{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: "$gameId"},
 			{Key: "firstThreeScores", Value: bson.D{{Key: "$firstN", Value: bson.D{
@@ -492,7 +492,7 @@ func TestLastAccumulator_UseInGroupStage(t *testing.T) {
 
 func TestLastNAccumulator_FindLastThreePlayerScoresForSingleGame(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("gameId", "G1")),
+		agg.MatchStage(query.Field("gameId", query.Eq("G1"))),
 		agg.GroupStage(
 			"$gameId",
 			agg.Accumulate("lastThreeScores", agg.LastNAccumulator(
@@ -502,7 +502,7 @@ func TestLastNAccumulator_FindLastThreePlayerScoresForSingleGame(t *testing.T) {
 		),
 	}
 	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: "G1"}}}},
+		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: bson.D{{Key: "$eq", Value: "G1"}}}}}},
 		bson.D{{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: "$gameId"},
 			{Key: "lastThreeScores", Value: bson.D{{Key: "$lastN", Value: bson.D{
@@ -600,7 +600,7 @@ func TestMaxAccumulator_UseInGroupStage(t *testing.T) {
 
 func TestMaxNAccumulator_FindMaxThreeScoresForSingleGame(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("gameId", "G1")),
+		agg.MatchStage(query.Field("gameId", query.Eq("G1"))),
 		agg.GroupStage(
 			"$gameId",
 			agg.Accumulate("maxThreeScores", agg.MaxNAccumulator(
@@ -610,7 +610,7 @@ func TestMaxNAccumulator_FindMaxThreeScoresForSingleGame(t *testing.T) {
 		),
 	}
 	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: "G1"}}}},
+		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: bson.D{{Key: "$eq", Value: "G1"}}}}}},
 		bson.D{{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: "$gameId"},
 			{Key: "maxThreeScores", Value: bson.D{{Key: "$maxN", Value: bson.D{
@@ -723,7 +723,7 @@ func TestMinAccumulator_UseInGroupStage(t *testing.T) {
 
 func TestMinNAccumulator_FindMinThreeScoresForSingleGame(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("gameId", "G1")),
+		agg.MatchStage(query.Field("gameId", query.Eq("G1"))),
 		agg.GroupStage(
 			"$gameId",
 			agg.Accumulate("minScores", agg.MinNAccumulator(
@@ -733,7 +733,7 @@ func TestMinNAccumulator_FindMinThreeScoresForSingleGame(t *testing.T) {
 		),
 	}
 	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: "G1"}}}},
+		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: bson.D{{Key: "$eq", Value: "G1"}}}}}},
 		bson.D{{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: "$gameId"},
 			{Key: "minScores", Value: bson.D{{Key: "$minN", Value: bson.D{
@@ -999,7 +999,7 @@ func TestSumAccumulator_UseInGroupStage(t *testing.T) {
 
 func TestTopAccumulator_FindTopScore(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("gameId", "G1")),
+		agg.MatchStage(query.Field("gameId", query.Eq("G1"))),
 		agg.GroupStage(
 			"$gameId",
 			agg.Accumulate("playerId", agg.TopAccumulator(
@@ -1009,7 +1009,7 @@ func TestTopAccumulator_FindTopScore(t *testing.T) {
 		),
 	}
 	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: "G1"}}}},
+		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: bson.D{{Key: "$eq", Value: "G1"}}}}}},
 		bson.D{{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: "$gameId"},
 			{Key: "playerId", Value: bson.D{{Key: "$top", Value: bson.D{
@@ -1047,7 +1047,7 @@ func TestTopAccumulator_FindTopScoreAcrossMultipleGames(t *testing.T) {
 
 func TestTopNAccumulator_FindThreeHighestScores(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("gameId", "G1")),
+		agg.MatchStage(query.Field("gameId", query.Eq("G1"))),
 		agg.GroupStage(
 			"$gameId",
 			agg.Accumulate("playerId", agg.TopNAccumulator(
@@ -1058,7 +1058,7 @@ func TestTopNAccumulator_FindThreeHighestScores(t *testing.T) {
 		),
 	}
 	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: "G1"}}}},
+		bson.D{{Key: "$match", Value: bson.D{{Key: "gameId", Value: bson.D{{Key: "$eq", Value: "G1"}}}}}},
 		bson.D{{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: "$gameId"},
 			{Key: "playerId", Value: bson.D{{Key: "$topN", Value: bson.D{

@@ -1459,7 +1459,7 @@ func TestDegreesToRadians(t *testing.T) {
 
 func TestDeserializeEJSON_DeserializeExtendedJSONDocument(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("title", "Inception")),
+		agg.MatchStage(query.Field("title", query.Eq("Inception"))),
 		agg.ProjectStage(
 			agg.Compute("original", agg.RootObject()),
 			agg.Compute("serialized", agg.SerializeEJSON(agg.RootObject())),
@@ -1471,7 +1471,7 @@ func TestDeserializeEJSON_DeserializeExtendedJSONDocument(t *testing.T) {
 	}
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{
-			{Key: "title", Value: "Inception"},
+			{Key: "title", Value: bson.D{{Key: "$eq", Value: "Inception"}}},
 		}}},
 		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "original", Value: "$$ROOT"},
@@ -1493,7 +1493,7 @@ func TestDeserializeEJSON_DeserializeExtendedJSONDocument(t *testing.T) {
 
 func TestDeserializeEJSON_DeserializeSpecificFields(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("title", "Inception")),
+		agg.MatchStage(query.Field("title", query.Eq("Inception"))),
 		agg.ProjectStage(
 			agg.Include("title"),
 			agg.Compute("serializedMetadata", agg.SerializeEJSON(bson.D{
@@ -1509,7 +1509,7 @@ func TestDeserializeEJSON_DeserializeSpecificFields(t *testing.T) {
 	}
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{
-			{Key: "title", Value: "Inception"},
+			{Key: "title", Value: bson.D{{Key: "$eq", Value: "Inception"}}},
 		}}},
 		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "title", Value: 1},
@@ -2633,7 +2633,7 @@ func TestMedian(t *testing.T) {
 func TestMeta_IndexKey(t *testing.T) {
 	got := agg.Pipeline{
 		agg.MatchStage(
-			query.Field("type", "apparel"),
+			query.Field("type", query.Eq("apparel")),
 		),
 		agg.AddFieldsStage(
 			agg.Assign("idxKey", agg.Meta("indexKey")),
@@ -2641,7 +2641,7 @@ func TestMeta_IndexKey(t *testing.T) {
 	}
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{
-			{Key: "type", Value: "apparel"},
+			{Key: "type", Value: bson.D{{Key: "$eq", Value: "apparel"}}},
 		}}},
 		bson.D{{Key: "$addFields", Value: bson.D{
 			{Key: "idxKey", Value: bson.D{{Key: "$meta", Value: "indexKey"}}},
@@ -3493,14 +3493,14 @@ func TestSecond(t *testing.T) {
 
 func TestSerializeEJSON_CanonicalExtendedJSONExample(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("title", "Inception")),
+		agg.MatchStage(query.Field("title", query.Eq("Inception"))),
 		agg.ProjectStage(
 			agg.Compute("ejson", agg.SerializeEJSON(agg.RootObject())),
 		),
 	}
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{
-			{Key: "title", Value: "Inception"},
+			{Key: "title", Value: bson.D{{Key: "$eq", Value: "Inception"}}},
 		}}},
 		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "ejson", Value: bson.D{{Key: "$serializeEJSON", Value: bson.D{
@@ -3513,14 +3513,14 @@ func TestSerializeEJSON_CanonicalExtendedJSONExample(t *testing.T) {
 
 func TestSerializeEJSON_RelaxedExtendedJSONExample(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("title", "Inception")),
+		agg.MatchStage(query.Field("title", query.Eq("Inception"))),
 		agg.ProjectStage(
 			agg.Compute("ejson", agg.SerializeEJSON(agg.RootObject(), agg.WithSerializeEJSONRelaxed(true))),
 		),
 	}
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{
-			{Key: "title", Value: "Inception"},
+			{Key: "title", Value: bson.D{{Key: "$eq", Value: "Inception"}}},
 		}}},
 		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "ejson", Value: bson.D{{Key: "$serializeEJSON", Value: bson.D{
