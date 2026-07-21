@@ -1794,6 +1794,25 @@ func TestFunction_UsageExample(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
+func TestFunction_NilArgs(t *testing.T) {
+	body := "function() { return 42 }"
+	got := agg.Pipeline{
+		agg.AddFieldsStage(
+			agg.Assign("answer", agg.Function(body, nil)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "answer", Value: bson.D{{Key: "$function", Value: bson.D{
+				{Key: "body", Value: bson.JavaScript(body)},
+				{Key: "args", Value: bson.A{}},
+				{Key: "lang", Value: "js"},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
 // TODO: implement TestFunction_AlternativeToWhere when the $expr query operator is implemented
 
 // TODO: implement $getField tests when $expr is implemented

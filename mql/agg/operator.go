@@ -217,20 +217,24 @@ func Cond[T BoolResolver](ifExpr T, then Expr, elseExpr Expr) AnyExpr {
 }
 
 type convertOptions struct {
-	onError any
-	onNull  any
-	base    any
+	onError    any
+	hasOnError bool
+	onNull     any
+	hasOnNull  bool
+	base       any
 }
 
 func WithConvertOnError(onError Expr) Option[convertOptions] {
 	return func(o *convertOptions) {
 		o.onError = onError
+		o.hasOnError = true
 	}
 }
 
 func WithConvertOnNull(onNull Expr) Option[convertOptions] {
 	return func(o *convertOptions) {
 		o.onNull = onNull
+		o.hasOnNull = true
 	}
 }
 
@@ -254,10 +258,10 @@ func Convert[T StringResolver | NumberResolver](input Expr, to T, opts ...Option
 		{Key: "input", Value: input},
 		{Key: "to", Value: to},
 	}
-	if o.onError != nil {
+	if o.hasOnError {
 		doc = append(doc, bson.E{Key: "onError", Value: o.onError})
 	}
-	if o.onNull != nil {
+	if o.hasOnNull {
 		doc = append(doc, bson.E{Key: "onNull", Value: o.onNull})
 	}
 	if o.base != nil {
@@ -459,10 +463,12 @@ func DateFromParts(opts ...Option[dateFromPartsOptions]) DateExpr {
 }
 
 type dateFromStringOptions struct {
-	format   any
-	timezone any
-	onError  any
-	onNull   any
+	format     any
+	timezone   any
+	onError    any
+	hasOnError bool
+	onNull     any
+	hasOnNull  bool
 }
 
 // WithDateFromStringFormat sets the date format of the input string.
@@ -477,12 +483,12 @@ func WithDateFromStringTimezone[T StringResolver](timezone T) Option[dateFromStr
 
 // WithDateFromStringOnError sets the value returned if the string cannot be parsed.
 func WithDateFromStringOnError(onError Expr) Option[dateFromStringOptions] {
-	return func(o *dateFromStringOptions) { o.onError = onError }
+	return func(o *dateFromStringOptions) { o.onError = onError; o.hasOnError = true }
 }
 
 // WithDateFromStringOnNull sets the value returned if the string is null or missing.
 func WithDateFromStringOnNull(onNull Expr) Option[dateFromStringOptions] {
-	return func(o *dateFromStringOptions) { o.onNull = onNull }
+	return func(o *dateFromStringOptions) { o.onNull = onNull; o.hasOnNull = true }
 }
 
 // DateFromString converts a date/time string to a Date ($dateFromString).
@@ -498,10 +504,10 @@ func DateFromString[S StringResolver](dateString S, opts ...Option[dateFromStrin
 	if o.timezone != nil {
 		doc = append(doc, bson.E{Key: "timezone", Value: o.timezone})
 	}
-	if o.onError != nil {
+	if o.hasOnError {
 		doc = append(doc, bson.E{Key: "onError", Value: o.onError})
 	}
-	if o.onNull != nil {
+	if o.hasOnNull {
 		doc = append(doc, bson.E{Key: "onNull", Value: o.onNull})
 	}
 	return DateExpr{expr: bson.D{{Key: "$dateFromString", Value: doc}}}
@@ -566,9 +572,10 @@ func DateToParts[T DateResolver | TimestampResolver | ObjectIDResolver](date T, 
 }
 
 type dateToStringOptions struct {
-	format   any
-	timezone any
-	onNull   any
+	format    any
+	timezone  any
+	onNull    any
+	hasOnNull bool
 }
 
 // WithDateToStringFormat sets the output date format.
@@ -583,7 +590,7 @@ func WithDateToStringTimezone[T StringResolver](timezone T) Option[dateToStringO
 
 // WithDateToStringOnNull sets the value returned if the date is null or missing.
 func WithDateToStringOnNull(onNull Expr) Option[dateToStringOptions] {
-	return func(o *dateToStringOptions) { o.onNull = onNull }
+	return func(o *dateToStringOptions) { o.onNull = onNull; o.hasOnNull = true }
 }
 
 // DateToString returns the date as a formatted string ($dateToString).
@@ -599,7 +606,7 @@ func DateToString[T DateResolver | TimestampResolver | ObjectIDResolver](date T,
 	if o.timezone != nil {
 		doc = append(doc, bson.E{Key: "timezone", Value: o.timezone})
 	}
-	if o.onNull != nil {
+	if o.hasOnNull {
 		doc = append(doc, bson.E{Key: "onNull", Value: o.onNull})
 	}
 	return StringExpr{expr: bson.D{{Key: "$dateToString", Value: doc}}}
@@ -806,13 +813,15 @@ func Floor[T NumberResolver](expr T) NumberExpr {
 }
 
 type functionOptions struct {
-	lang any
+	lang    string
+	hasLang bool
 }
 
 // WithFunctionLang sets the language of the $function body; defaults to "js".
 func WithFunctionLang(lang string) Option[functionOptions] {
 	return func(o *functionOptions) {
 		o.lang = lang
+		o.hasLang = true
 	}
 }
 
@@ -825,8 +834,11 @@ func Function(body string, args []Expr, opts ...Option[functionOptions]) AnyExpr
 		opt(&o)
 	}
 	lang := "js"
-	if o.lang != nil {
-		lang = o.lang.(string)
+	if o.hasLang {
+		lang = o.lang
+	}
+	if args == nil {
+		args = []Expr{}
 	}
 	return AnyExpr{expr: bson.D{{Key: "$function", Value: bson.D{
 		{Key: "body", Value: bson.JavaScript(body)},
