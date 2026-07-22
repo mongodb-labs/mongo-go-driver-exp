@@ -609,14 +609,14 @@ func FillStage(output []FillOutput, opts ...Option[fillOptions]) Stage {
 		opt(&o)
 	}
 	doc := bson.D{}
+	if o.sortBy != nil {
+		doc = append(doc, bson.E{Key: "sortBy", Value: sortFieldsDoc(o.sortBy)})
+	}
 	if o.partitionBy != nil {
 		doc = append(doc, bson.E{Key: "partitionBy", Value: o.partitionBy})
 	}
 	if o.partitionByFields != nil {
 		doc = append(doc, bson.E{Key: "partitionByFields", Value: o.partitionByFields})
-	}
-	if o.sortBy != nil {
-		doc = append(doc, bson.E{Key: "sortBy", Value: sortFieldsDoc(o.sortBy)})
 	}
 	outDoc := make(bson.D, len(output))
 	for i, f := range output {
@@ -702,18 +702,12 @@ func GeoNearStage(near Expr, opts ...Option[geoNearOptions]) Stage {
 	for _, opt := range opts {
 		opt(&o)
 	}
-	doc := bson.D{}
+	doc := bson.D{{Key: "near", Value: near}}
 	if o.distanceField != nil {
 		doc = append(doc, bson.E{Key: "distanceField", Value: o.distanceField})
 	}
 	if o.distanceMultiplier != nil {
 		doc = append(doc, bson.E{Key: "distanceMultiplier", Value: o.distanceMultiplier})
-	}
-	if o.includeLocs != nil {
-		doc = append(doc, bson.E{Key: "includeLocs", Value: o.includeLocs})
-	}
-	if o.key != nil {
-		doc = append(doc, bson.E{Key: "key", Value: o.key})
 	}
 	if o.maxDistance != nil {
 		doc = append(doc, bson.E{Key: "maxDistance", Value: o.maxDistance})
@@ -721,9 +715,14 @@ func GeoNearStage(near Expr, opts ...Option[geoNearOptions]) Stage {
 	if o.minDistance != nil {
 		doc = append(doc, bson.E{Key: "minDistance", Value: o.minDistance})
 	}
-	doc = append(doc, bson.E{Key: "near", Value: near})
 	if o.query != nil {
 		doc = append(doc, bson.E{Key: "query", Value: o.query})
+	}
+	if o.includeLocs != nil {
+		doc = append(doc, bson.E{Key: "includeLocs", Value: o.includeLocs})
+	}
+	if o.key != nil {
+		doc = append(doc, bson.E{Key: "key", Value: o.key})
 	}
 	if o.spherical != nil {
 		doc = append(doc, bson.E{Key: "spherical", Value: o.spherical})
@@ -1233,10 +1232,11 @@ func OutStage(coll string, opts ...Option[outOptions]) Stage {
 	for _, opt := range opts {
 		opt(&o)
 	}
-	doc := bson.D{{Key: "coll", Value: coll}}
+	doc := bson.D{}
 	if o.db != nil {
 		doc = append(doc, bson.E{Key: "db", Value: o.db})
 	}
+	doc = append(doc, bson.E{Key: "coll", Value: coll})
 	if o.timeseries != nil {
 		doc = append(doc, bson.E{Key: "timeseries", Value: o.timeseries.doc()})
 	}

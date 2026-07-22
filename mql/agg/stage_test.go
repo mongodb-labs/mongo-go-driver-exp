@@ -3,6 +3,7 @@ package agg_test
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	"github.com/mongodb-labs/mongo-go-driver-exp/mql/agg"
 	"github.com/mongodb-labs/mongo-go-driver-exp/mql/query"
@@ -533,6 +534,98 @@ func TestCurrentOpStage_MultipleOptions(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
+// --- $densify ---
+
+func TestDensifyStage_DensifyTimeSeriesData(t *testing.T) {
+	lower := time.Date(2021, 5, 18, 0, 0, 0, 0, time.UTC)
+	upper := time.Date(2021, 5, 18, 8, 0, 0, 0, time.UTC)
+	got := agg.Pipeline{
+		agg.DensifyStage(
+			"timestamp",
+			1,
+			agg.DensifyBoundsValues(lower, upper),
+			agg.WithDensifyUnit("hour"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$densify", Value: bson.D{
+			{Key: "field", Value: "timestamp"},
+			{Key: "range", Value: bson.D{
+				{Key: "bounds", Value: bson.A{lower, upper}},
+				{Key: "step", Value: 1},
+				{Key: "unit", Value: "hour"},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestDensifyStage_DensificationWithPartitions(t *testing.T) {
+	got := agg.Pipeline{
+		agg.DensifyStage(
+			"altitude",
+			200,
+			agg.DensifyBoundsFull(),
+			agg.WithDensifyPartitionByFields("variety"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$densify", Value: bson.D{
+			{Key: "field", Value: "altitude"},
+			{Key: "partitionByFields", Value: bson.A{"variety"}},
+			{Key: "range", Value: bson.D{
+				{Key: "bounds", Value: "full"},
+				{Key: "step", Value: 200},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestDensifyStage_NumericBounds(t *testing.T) {
+	got := agg.Pipeline{
+		agg.DensifyStage(
+			"value",
+			25,
+			agg.DensifyBoundsValues(0, 100),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$densify", Value: bson.D{
+			{Key: "field", Value: "value"},
+			{Key: "range", Value: bson.D{
+				{Key: "bounds", Value: bson.A{0, 100}},
+				{Key: "step", Value: 25},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestDensifyStage_PartitionBounds(t *testing.T) {
+	got := agg.Pipeline{
+		agg.DensifyStage(
+			"timestamp",
+			1,
+			agg.DensifyBoundsPartition(),
+			agg.WithDensifyUnit("hour"),
+			agg.WithDensifyPartitionByFields("sensorId"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$densify", Value: bson.D{
+			{Key: "field", Value: "timestamp"},
+			{Key: "partitionByFields", Value: bson.A{"sensorId"}},
+			{Key: "range", Value: bson.D{
+				{Key: "bounds", Value: "partition"},
+				{Key: "step", Value: 1},
+				{Key: "unit", Value: "hour"},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
 // --- $documents ---
 
 func TestDocumentsStage_TestAPipelineStage(t *testing.T) {
@@ -553,6 +646,271 @@ func TestDocumentsStage_TestAPipelineStage(t *testing.T) {
 		bson.D{{Key: "$bucketAuto", Value: bson.D{
 			{Key: "groupBy", Value: "$x"},
 			{Key: "buckets", Value: 4},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// --- $facet ---
+
+func TestFacetStage_Example(t *testing.T) {
+	got := agg.Pipeline{
+		agg.FacetStage(
+			agg.Facet("categorizedByTags",
+				agg.UnwindStage("$tags"),
+				agg.SortByCountStage("$tags"),
+			),
+			agg.Facet("categorizedByPrice",
+				agg.MatchStage(query.Field("price", query.Exists(true))),
+				agg.BucketStage(
+					"$price",
+					[]any{0, 150, 200, 300, 400},
+					agg.WithBucketDefault("Other"),
+					agg.WithBucketOutput(
+						agg.Accumulate("count", agg.SumAccumulator(1)),
+						agg.Accumulate("titles", agg.PushAccumulator("$title")),
+					),
+				),
+			),
+			agg.Facet("categorizedByYears(Auto)",
+				agg.BucketAutoStage("$year", 4),
+			),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$facet", Value: bson.D{
+			{Key: "categorizedByTags", Value: bson.A{
+				bson.D{{Key: "$unwind", Value: bson.D{{Key: "path", Value: "$tags"}}}},
+				bson.D{{Key: "$sortByCount", Value: "$tags"}},
+			}},
+			{Key: "categorizedByPrice", Value: bson.A{
+				bson.D{{Key: "$match", Value: bson.D{{Key: "price", Value: bson.D{{Key: "$exists", Value: true}}}}}},
+				bson.D{{Key: "$bucket", Value: bson.D{
+					{Key: "groupBy", Value: "$price"},
+					{Key: "boundaries", Value: bson.A{0, 150, 200, 300, 400}},
+					{Key: "default", Value: "Other"},
+					{Key: "output", Value: bson.D{
+						{Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}},
+						{Key: "titles", Value: bson.D{{Key: "$push", Value: "$title"}}},
+					}},
+				}}},
+			}},
+			{Key: "categorizedByYears(Auto)", Value: bson.A{
+				bson.D{{Key: "$bucketAuto", Value: bson.D{
+					{Key: "groupBy", Value: "$year"},
+					{Key: "buckets", Value: 4},
+				}}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// --- $fill ---
+
+func TestFillStage_ConstantValue(t *testing.T) {
+	got := agg.Pipeline{
+		agg.FillStage([]agg.FillOutput{
+			agg.FillWithValue("bootsSold", 0),
+			agg.FillWithValue("sandalsSold", 0),
+			agg.FillWithValue("sneakersSold", 0),
+		}),
+	}
+	want := bson.A{
+		bson.D{{Key: "$fill", Value: bson.D{
+			{Key: "output", Value: bson.D{
+				{Key: "bootsSold", Value: bson.D{{Key: "value", Value: 0}}},
+				{Key: "sandalsSold", Value: bson.D{{Key: "value", Value: 0}}},
+				{Key: "sneakersSold", Value: bson.D{{Key: "value", Value: 0}}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestFillStage_LinearInterpolation(t *testing.T) {
+	got := agg.Pipeline{
+		agg.FillStage(
+			[]agg.FillOutput{agg.FillWithMethod("price", "linear")},
+			agg.WithFillSortBy(agg.Sort("time", agg.Asc)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$fill", Value: bson.D{
+			{Key: "sortBy", Value: bson.D{{Key: "time", Value: 1}}},
+			{Key: "output", Value: bson.D{
+				{Key: "price", Value: bson.D{{Key: "method", Value: "linear"}}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestFillStage_LastObservedValue(t *testing.T) {
+	got := agg.Pipeline{
+		agg.FillStage(
+			[]agg.FillOutput{agg.FillWithMethod("score", "locf")},
+			agg.WithFillSortBy(agg.Sort("date", agg.Asc)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$fill", Value: bson.D{
+			{Key: "sortBy", Value: bson.D{{Key: "date", Value: 1}}},
+			{Key: "output", Value: bson.D{
+				{Key: "score", Value: bson.D{{Key: "method", Value: "locf"}}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestFillStage_DistinctPartitions(t *testing.T) {
+	got := agg.Pipeline{
+		agg.FillStage(
+			[]agg.FillOutput{agg.FillWithMethod("score", "locf")},
+			agg.WithFillSortBy(agg.Sort("date", agg.Asc)),
+			agg.WithFillPartitionBy(bson.D{{Key: "restaurant", Value: "$restaurant"}}),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$fill", Value: bson.D{
+			{Key: "sortBy", Value: bson.D{{Key: "date", Value: 1}}},
+			{Key: "partitionBy", Value: bson.D{{Key: "restaurant", Value: "$restaurant"}}},
+			{Key: "output", Value: bson.D{
+				{Key: "score", Value: bson.D{{Key: "method", Value: "locf"}}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// --- $geoNear ---
+
+func TestGeoNearStage_MaximumDistance(t *testing.T) {
+	got := agg.Pipeline{
+		agg.GeoNearStage(
+			bson.D{
+				{Key: "type", Value: "Point"},
+				{Key: "coordinates", Value: bson.A{-73.99279, 40.719296}},
+			},
+			agg.WithGeoNearDistanceField("dist.calculated"),
+			agg.WithGeoNearMaxDistance(2),
+			agg.WithGeoNearQuery(query.Field("category", query.Eq("Parks"))),
+			agg.WithGeoNearIncludeLocs("dist.location"),
+			agg.WithGeoNearSpherical(true),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$geoNear", Value: bson.D{
+			{Key: "near", Value: bson.D{
+				{Key: "type", Value: "Point"},
+				{Key: "coordinates", Value: bson.A{-73.99279, 40.719296}},
+			}},
+			{Key: "distanceField", Value: "dist.calculated"},
+			{Key: "maxDistance", Value: 2},
+			{Key: "query", Value: bson.D{{Key: "category", Value: bson.D{{Key: "$eq", Value: "Parks"}}}}},
+			{Key: "includeLocs", Value: "dist.location"},
+			{Key: "spherical", Value: true},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestGeoNearStage_MinimumDistance(t *testing.T) {
+	got := agg.Pipeline{
+		agg.GeoNearStage(
+			bson.D{
+				{Key: "type", Value: "Point"},
+				{Key: "coordinates", Value: bson.A{-73.99279, 40.719296}},
+			},
+			agg.WithGeoNearDistanceField("dist.calculated"),
+			agg.WithGeoNearMinDistance(2),
+			agg.WithGeoNearQuery(query.Field("category", query.Eq("Parks"))),
+			agg.WithGeoNearIncludeLocs("dist.location"),
+			agg.WithGeoNearSpherical(true),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$geoNear", Value: bson.D{
+			{Key: "near", Value: bson.D{
+				{Key: "type", Value: "Point"},
+				{Key: "coordinates", Value: bson.A{-73.99279, 40.719296}},
+			}},
+			{Key: "distanceField", Value: "dist.calculated"},
+			{Key: "minDistance", Value: 2},
+			{Key: "query", Value: bson.D{{Key: "category", Value: bson.D{{Key: "$eq", Value: "Parks"}}}}},
+			{Key: "includeLocs", Value: "dist.location"},
+			{Key: "spherical", Value: true},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// --- $graphLookup ---
+
+func TestGraphLookupStage_WithinASingleCollection(t *testing.T) {
+	got := agg.Pipeline{
+		agg.GraphLookupStage("employees", "$reportsTo", "reportsTo", "name", "reportingHierarchy"),
+	}
+	want := bson.A{
+		bson.D{{Key: "$graphLookup", Value: bson.D{
+			{Key: "from", Value: "employees"},
+			{Key: "startWith", Value: "$reportsTo"},
+			{Key: "connectFromField", Value: "reportsTo"},
+			{Key: "connectToField", Value: "name"},
+			{Key: "as", Value: "reportingHierarchy"},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestGraphLookupStage_AcrossMultipleCollections(t *testing.T) {
+	got := agg.Pipeline{
+		agg.GraphLookupStage("airports", "$nearestAirport", "connects", "airport", "destinations",
+			agg.WithGraphLookupMaxDepth(2),
+			agg.WithGraphLookupDepthField("numConnections"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$graphLookup", Value: bson.D{
+			{Key: "from", Value: "airports"},
+			{Key: "startWith", Value: "$nearestAirport"},
+			{Key: "connectFromField", Value: "connects"},
+			{Key: "connectToField", Value: "airport"},
+			{Key: "as", Value: "destinations"},
+			{Key: "maxDepth", Value: 2},
+			{Key: "depthField", Value: "numConnections"},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestGraphLookupStage_WithAQueryFilter(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(query.Field("name", query.Eq("Tanya Jordan"))),
+		agg.GraphLookupStage("people", "$friends", "friends", "name", "golfers",
+			agg.WithGraphLookupRestrictSearchWithMatch(query.Field("hobbies", query.Eq("golf"))),
+		),
+		agg.ProjectStage(
+			agg.Include("name"),
+			agg.Include("friends"),
+			agg.Compute("connections who play golf", "$golfers.name"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{{Key: "name", Value: bson.D{{Key: "$eq", Value: "Tanya Jordan"}}}}}},
+		bson.D{{Key: "$graphLookup", Value: bson.D{
+			{Key: "from", Value: "people"},
+			{Key: "startWith", Value: "$friends"},
+			{Key: "connectFromField", Value: "friends"},
+			{Key: "connectToField", Value: "name"},
+			{Key: "as", Value: "golfers"},
+			{Key: "restrictSearchWithMatch", Value: bson.D{{Key: "hobbies", Value: bson.D{{Key: "$eq", Value: "golf"}}}}},
+		}}},
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "name", Value: 1},
+			{Key: "friends", Value: 1},
+			{Key: "connections who play golf", Value: "$golfers.name"},
 		}}},
 	}
 	assertPipelineEqual(t, got, want)
@@ -748,6 +1106,226 @@ func TestLimitStage(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
+// --- $listLocalSessions ---
+
+func TestListLocalSessionsStage_AllUsers(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ListLocalSessionsStage(agg.WithListLocalSessionsAllUsers(true)),
+	}
+	want := bson.A{
+		bson.D{{Key: "$listLocalSessions", Value: bson.D{{Key: "allUsers", Value: true}}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestListLocalSessionsStage_SpecifiedUsers(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ListLocalSessionsStage(agg.WithListLocalSessionsUsers(
+			agg.SessionUser{User: "myAppReader", DB: "test"},
+		)),
+	}
+	want := bson.A{
+		bson.D{{Key: "$listLocalSessions", Value: bson.D{
+			{Key: "users", Value: bson.A{
+				bson.D{{Key: "user", Value: "myAppReader"}, {Key: "db", Value: "test"}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestListLocalSessionsStage_CurrentUser(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ListLocalSessionsStage(),
+	}
+	want := bson.A{
+		bson.D{{Key: "$listLocalSessions", Value: bson.D{}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// --- $listSampledQueries ---
+
+func TestListSampledQueriesStage_AllCollections(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ListSampledQueriesStage(),
+	}
+	want := bson.A{
+		bson.D{{Key: "$listSampledQueries", Value: bson.D{}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestListSampledQueriesStage_SpecificCollection(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ListSampledQueriesStage(agg.WithListSampledQueriesNamespace("social.post")),
+	}
+	want := bson.A{
+		bson.D{{Key: "$listSampledQueries", Value: bson.D{{Key: "namespace", Value: "social.post"}}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// --- $listSearchIndexes ---
+
+func TestListSearchIndexesStage_AllIndexes(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ListSearchIndexesStage(),
+	}
+	want := bson.A{
+		bson.D{{Key: "$listSearchIndexes", Value: bson.D{}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestListSearchIndexesStage_ByName(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ListSearchIndexesStage(agg.WithListSearchIndexesName("synonym-mappings")),
+	}
+	want := bson.A{
+		bson.D{{Key: "$listSearchIndexes", Value: bson.D{{Key: "name", Value: "synonym-mappings"}}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestListSearchIndexesStage_ById(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ListSearchIndexesStage(agg.WithListSearchIndexesID("6524096020da840844a4c4a7")),
+	}
+	want := bson.A{
+		bson.D{{Key: "$listSearchIndexes", Value: bson.D{{Key: "id", Value: "6524096020da840844a4c4a7"}}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// --- $listSessions ---
+
+func TestListSessionsStage_AllUsers(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ListSessionsStage(agg.WithListSessionsAllUsers(true)),
+	}
+	want := bson.A{
+		bson.D{{Key: "$listSessions", Value: bson.D{{Key: "allUsers", Value: true}}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestListSessionsStage_SpecifiedUsers(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ListSessionsStage(agg.WithListSessionsUsers(
+			agg.SessionUser{User: "myAppReader", DB: "test"},
+		)),
+	}
+	want := bson.A{
+		bson.D{{Key: "$listSessions", Value: bson.D{
+			{Key: "users", Value: bson.A{
+				bson.D{{Key: "user", Value: "myAppReader"}, {Key: "db", Value: "test"}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestListSessionsStage_CurrentUser(t *testing.T) {
+	got := agg.Pipeline{
+		agg.ListSessionsStage(),
+	}
+	want := bson.A{
+		bson.D{{Key: "$listSessions", Value: bson.D{}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// --- $lookup ---
+
+func TestLookupStage_SingleEqualityJoin(t *testing.T) {
+	got := agg.Pipeline{
+		agg.LookupStage("inventory_docs",
+			agg.WithLookupFrom("inventory"),
+			agg.WithLookupLocalField("item"),
+			agg.WithLookupForeignField("sku"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$lookup", Value: bson.D{
+			{Key: "from", Value: "inventory"},
+			{Key: "localField", Value: "item"},
+			{Key: "foreignField", Value: "sku"},
+			{Key: "as", Value: "inventory_docs"},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestLookupStage_WithMergeObjects(t *testing.T) {
+	got := agg.Pipeline{
+		agg.LookupStage("fromItems",
+			agg.WithLookupFrom("items"),
+			agg.WithLookupLocalField("item"),
+			agg.WithLookupForeignField("item"),
+		),
+		agg.ReplaceRootStage(agg.MergeObjects(
+			agg.ArrayElemAt("$fromItems", 0),
+			agg.RootObject(),
+		)),
+		agg.ProjectStage(agg.Exclude("fromItems")),
+	}
+	want := bson.A{
+		bson.D{{Key: "$lookup", Value: bson.D{
+			{Key: "from", Value: "items"},
+			{Key: "localField", Value: "item"},
+			{Key: "foreignField", Value: "item"},
+			{Key: "as", Value: "fromItems"},
+		}}},
+		bson.D{{Key: "$replaceRoot", Value: bson.D{
+			{Key: "newRoot", Value: bson.D{{Key: "$mergeObjects", Value: bson.A{
+				bson.D{{Key: "$arrayElemAt", Value: bson.A{"$fromItems", 0}}},
+				"$$ROOT",
+			}}}},
+		}}},
+		bson.D{{Key: "$project", Value: bson.D{{Key: "fromItems", Value: 0}}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestLookupStage_UncorrelatedSubquery(t *testing.T) {
+	got := agg.Pipeline{
+		agg.LookupStage("holidays",
+			agg.WithLookupFrom("holidays"),
+			agg.WithLookupPipeline(
+				agg.MatchStage(query.Field("year", query.Eq(2018))),
+				agg.ProjectStage(
+					agg.Compute("date", bson.D{
+						{Key: "name", Value: "$name"},
+						{Key: "date", Value: "$date"},
+					}),
+				),
+				agg.ReplaceRootStage("$date"),
+			),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$lookup", Value: bson.D{
+			{Key: "from", Value: "holidays"},
+			{Key: "pipeline", Value: bson.A{
+				bson.D{{Key: "$match", Value: bson.D{{Key: "year", Value: bson.D{{Key: "$eq", Value: 2018}}}}}},
+				bson.D{{Key: "$project", Value: bson.D{
+					{Key: "date", Value: bson.D{
+						{Key: "name", Value: "$name"},
+						{Key: "date", Value: "$date"},
+					}},
+				}}},
+				bson.D{{Key: "$replaceRoot", Value: bson.D{{Key: "newRoot", Value: "$date"}}}},
+			}},
+			{Key: "as", Value: "holidays"},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// TODO: implement TestLookupStage_CorrelatedSubquery (uses WithLookupLet plus a
+// $match with the $expr query operator, which is not implemented yet)
+
 // --- $match ---
 
 func TestMatchStage_EqualityMatch(t *testing.T) {
@@ -778,6 +1356,132 @@ func TestMatchStage_EmptyFieldCondition(t *testing.T) {
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{
 			{Key: "x", Value: bson.D{}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// --- $merge ---
+
+func TestMergeStage_OnDemandMaterializedView(t *testing.T) {
+	got := agg.Pipeline{
+		agg.GroupStage(
+			bson.D{{Key: "fiscal_year", Value: "$fiscal_year"}, {Key: "dept", Value: "$dept"}},
+			agg.Accumulate("salaries", agg.SumAccumulator("$salary")),
+		),
+		agg.MergeStage("budgets",
+			agg.WithMergeIntoDB("reporting"),
+			agg.WithMergeOn("_id"),
+			agg.WithMergeWhenMatched("replace"),
+			agg.WithMergeWhenNotMatched("insert"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: bson.D{{Key: "fiscal_year", Value: "$fiscal_year"}, {Key: "dept", Value: "$dept"}}},
+			{Key: "salaries", Value: bson.D{{Key: "$sum", Value: "$salary"}}},
+		}}},
+		bson.D{{Key: "$merge", Value: bson.D{
+			{Key: "into", Value: bson.D{{Key: "db", Value: "reporting"}, {Key: "coll", Value: "budgets"}}},
+			{Key: "on", Value: "_id"},
+			{Key: "whenMatched", Value: "replace"},
+			{Key: "whenNotMatched", Value: "insert"},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestMergeStage_OnlyInsertNewData(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MergeStage("orgArchive",
+			agg.WithMergeIntoDB("reporting"),
+			agg.WithMergeOn("dept", "fiscal_year"),
+			agg.WithMergeWhenMatched("fail"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$merge", Value: bson.D{
+			{Key: "into", Value: bson.D{{Key: "db", Value: "reporting"}, {Key: "coll", Value: "orgArchive"}}},
+			{Key: "on", Value: bson.A{"dept", "fiscal_year"}},
+			{Key: "whenMatched", Value: "fail"},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestMergeStage_MergeResultsFromMultipleCollections(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MergeStage("quarterlyreport",
+			agg.WithMergeOn("_id"),
+			agg.WithMergeWhenMatched("merge"),
+			agg.WithMergeWhenNotMatched("insert"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$merge", Value: bson.D{
+			{Key: "into", Value: "quarterlyreport"},
+			{Key: "on", Value: "_id"},
+			{Key: "whenMatched", Value: "merge"},
+			{Key: "whenNotMatched", Value: "insert"},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// --- $out ---
+
+func TestOutStage_SameDatabase(t *testing.T) {
+	got := agg.Pipeline{
+		agg.GroupStage("$author", agg.Accumulate("books", agg.PushAccumulator("$title"))),
+		agg.OutStage("authors"),
+	}
+	want := bson.A{
+		bson.D{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$author"},
+			{Key: "books", Value: bson.D{{Key: "$push", Value: "$title"}}},
+		}}},
+		bson.D{{Key: "$out", Value: bson.D{{Key: "coll", Value: "authors"}}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestOutStage_DifferentDatabase(t *testing.T) {
+	got := agg.Pipeline{
+		agg.GroupStage("$author", agg.Accumulate("books", agg.PushAccumulator("$title"))),
+		agg.OutStage("authors", agg.WithOutDB("reporting")),
+	}
+	want := bson.A{
+		bson.D{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$author"},
+			{Key: "books", Value: bson.D{{Key: "$push", Value: "$title"}}},
+		}}},
+		bson.D{{Key: "$out", Value: bson.D{
+			{Key: "db", Value: "reporting"},
+			{Key: "coll", Value: "authors"},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestOutStage_TimeSeriesCollection(t *testing.T) {
+	got := agg.Pipeline{
+		agg.OutStage("sensorData",
+			agg.WithOutDB("reporting"),
+			agg.WithOutTimeseries(agg.NewTimeseries("timestamp",
+				agg.WithTimeseriesMetaField("sensorId"),
+				agg.WithTimeseriesGranularity("hours"),
+			)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$out", Value: bson.D{
+			{Key: "db", Value: "reporting"},
+			{Key: "coll", Value: "sensorData"},
+			{Key: "timeseries", Value: bson.D{
+				{Key: "timeField", Value: "timestamp"},
+				{Key: "metaField", Value: "sensorId"},
+				{Key: "granularity", Value: "hours"},
+			}},
 		}}},
 	}
 	assertPipelineEqual(t, got, want)
@@ -1078,6 +1782,86 @@ func TestSetStage_OverwriteExistingField(t *testing.T) {
 // TODO: implement TestSetStage_CreatingNewFieldWithExistingFields
 // after $avg expression operator is implemented
 
+// --- $setWindowFields ---
+
+func TestSetWindowFieldsStage_CumulativeQuantityForState(t *testing.T) {
+	got := agg.Pipeline{
+		agg.SetWindowFieldsStage(
+			[]agg.WindowField{
+				agg.WindowOutput("cumulativeQuantityForState", agg.SumAccumulator("$quantity"),
+					agg.WithWindowDocuments(agg.WindowUnbounded, agg.WindowCurrent)),
+			},
+			agg.WithSetWindowFieldsPartitionBy("$state"),
+			agg.WithSetWindowFieldsSortBy(agg.Sort("orderDate", agg.Asc)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$setWindowFields", Value: bson.D{
+			{Key: "partitionBy", Value: "$state"},
+			{Key: "sortBy", Value: bson.D{{Key: "orderDate", Value: 1}}},
+			{Key: "output", Value: bson.D{
+				{Key: "cumulativeQuantityForState", Value: bson.D{
+					{Key: "$sum", Value: "$quantity"},
+					{Key: "window", Value: bson.D{{Key: "documents", Value: bson.A{"unbounded", "current"}}}},
+				}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestSetWindowFieldsStage_CumulativeQuantityForYear(t *testing.T) {
+	got := agg.Pipeline{
+		agg.SetWindowFieldsStage(
+			[]agg.WindowField{
+				agg.WindowOutput("cumulativeQuantityForYear", agg.SumAccumulator("$quantity"),
+					agg.WithWindowDocuments(agg.WindowUnbounded, agg.WindowCurrent)),
+			},
+			agg.WithSetWindowFieldsPartitionBy(agg.Year("$orderDate")),
+			agg.WithSetWindowFieldsSortBy(agg.Sort("orderDate", agg.Asc)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$setWindowFields", Value: bson.D{
+			{Key: "partitionBy", Value: bson.D{{Key: "$year", Value: bson.D{{Key: "date", Value: "$orderDate"}}}}},
+			{Key: "sortBy", Value: bson.D{{Key: "orderDate", Value: 1}}},
+			{Key: "output", Value: bson.D{
+				{Key: "cumulativeQuantityForYear", Value: bson.D{
+					{Key: "$sum", Value: "$quantity"},
+					{Key: "window", Value: bson.D{{Key: "documents", Value: bson.A{"unbounded", "current"}}}},
+				}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestSetWindowFieldsStage_MovingAverageQuantityForYear(t *testing.T) {
+	got := agg.Pipeline{
+		agg.SetWindowFieldsStage(
+			[]agg.WindowField{
+				agg.WindowOutput("averageQuantity", agg.AvgAccumulator("$quantity"),
+					agg.WithWindowDocuments(agg.WindowOffset(-1), agg.WindowOffset(0))),
+			},
+			agg.WithSetWindowFieldsPartitionBy(agg.Year("$orderDate")),
+			agg.WithSetWindowFieldsSortBy(agg.Sort("orderDate", agg.Asc)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$setWindowFields", Value: bson.D{
+			{Key: "partitionBy", Value: bson.D{{Key: "$year", Value: bson.D{{Key: "date", Value: "$orderDate"}}}}},
+			{Key: "sortBy", Value: bson.D{{Key: "orderDate", Value: 1}}},
+			{Key: "output", Value: bson.D{
+				{Key: "averageQuantity", Value: bson.D{
+					{Key: "$avg", Value: "$quantity"},
+					{Key: "window", Value: bson.D{{Key: "documents", Value: bson.A{-1, 0}}}},
+				}},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
 // --- $shardedDataDistribution ---
 
 func TestShardedDataDistributionStage(t *testing.T) {
@@ -1165,6 +1949,65 @@ func TestUnsetStage_RemoveEmbeddedFields(t *testing.T) {
 	}
 	want := bson.A{
 		bson.D{{Key: "$unset", Value: bson.A{"isbn", "author.first", "copies.warehouse"}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// --- $unwind ---
+
+func TestUnwindStage_UnwindArray(t *testing.T) {
+	got := agg.Pipeline{
+		agg.UnwindStage("$sizes"),
+	}
+	want := bson.A{
+		bson.D{{Key: "$unwind", Value: bson.D{{Key: "path", Value: "$sizes"}}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestUnwindStage_PreserveNullAndEmptyArrays(t *testing.T) {
+	got := agg.Pipeline{
+		agg.UnwindStage("$sizes", agg.WithUnwindPreserveNullAndEmptyArrays(true)),
+	}
+	want := bson.A{
+		bson.D{{Key: "$unwind", Value: bson.D{
+			{Key: "path", Value: "$sizes"},
+			{Key: "preserveNullAndEmptyArrays", Value: true},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestUnwindStage_IncludeArrayIndex(t *testing.T) {
+	got := agg.Pipeline{
+		agg.UnwindStage("$sizes", agg.WithUnwindIncludeArrayIndex("arrayIndex")),
+	}
+	want := bson.A{
+		bson.D{{Key: "$unwind", Value: bson.D{
+			{Key: "path", Value: "$sizes"},
+			{Key: "includeArrayIndex", Value: "arrayIndex"},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestUnwindStage_UnwindEmbeddedArrays(t *testing.T) {
+	got := agg.Pipeline{
+		agg.UnwindStage("$items"),
+		agg.UnwindStage("$items.tags"),
+		agg.GroupStage("$items.tags",
+			agg.Accumulate("totalSalesAmount", agg.SumAccumulator(agg.Multiply("$items.price", "$items.quantity"))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$unwind", Value: bson.D{{Key: "path", Value: "$items"}}}},
+		bson.D{{Key: "$unwind", Value: bson.D{{Key: "path", Value: "$items.tags"}}}},
+		bson.D{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$items.tags"},
+			{Key: "totalSalesAmount", Value: bson.D{{Key: "$sum", Value: bson.D{
+				{Key: "$multiply", Value: bson.A{"$items.price", "$items.quantity"}},
+			}}}},
+		}}},
 	}
 	assertPipelineEqual(t, got, want)
 }
