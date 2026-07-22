@@ -496,11 +496,13 @@ func DensifyStage[T Number](field string, step T, bounds DensifyBounds, opts ...
 	for _, opt := range opts {
 		opt(&o)
 	}
-	rng := bson.D{{Key: "step", Value: step}}
+	rng := bson.D{
+		{Key: "bounds", Value: bounds.v},
+		{Key: "step", Value: step},
+	}
 	if o.unit != nil {
 		rng = append(rng, bson.E{Key: "unit", Value: o.unit})
 	}
-	rng = append(rng, bson.E{Key: "bounds", Value: bounds.v})
 	doc := bson.D{{Key: "field", Value: field}}
 	if o.partitionByFields != nil {
 		doc = append(doc, bson.E{Key: "partitionByFields", Value: o.partitionByFields})

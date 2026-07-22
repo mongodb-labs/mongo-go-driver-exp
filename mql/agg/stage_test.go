@@ -365,6 +365,84 @@ func TestChangeStreamSplitLargeEvent_AfterChangeStreamWithOptions(t *testing.T) 
 	assertPipelineEqual(t, got, want)
 }
 
+// --- $collStats ---
+
+func TestCollStatsStage_LatencyStatsDocument(t *testing.T) {
+	got := agg.Pipeline{
+		agg.CollStatsStage(
+			agg.WithCollStatsLatencyStats(true),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$collStats", Value: bson.D{
+			{Key: "latencyStats", Value: bson.D{{Key: "histograms", Value: true}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestCollStatsStage_StorageStatsDocument(t *testing.T) {
+	got := agg.Pipeline{
+		agg.CollStatsStage(
+			agg.WithCollStatsStorageStats(),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$collStats", Value: bson.D{
+			{Key: "storageStats", Value: bson.D{}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestCollStatsStage_Count(t *testing.T) {
+	got := agg.Pipeline{
+		agg.CollStatsStage(
+			agg.WithCollStatsCount(),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$collStats", Value: bson.D{
+			{Key: "count", Value: bson.D{}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestCollStatsStage_QueryExecStats(t *testing.T) {
+	got := agg.Pipeline{
+		agg.CollStatsStage(
+			agg.WithCollStatsQueryExecStats(),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$collStats", Value: bson.D{
+			{Key: "queryExecStats", Value: bson.D{}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestCollStatsStage_MultipleOptions(t *testing.T) {
+	got := agg.Pipeline{
+		agg.CollStatsStage(
+			agg.WithCollStatsQueryExecStats(),
+			agg.WithCollStatsCount(),
+			agg.WithCollStatsLatencyStats(true),
+			agg.WithCollStatsStorageStats(),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$collStats", Value: bson.D{
+			{Key: "latencyStats", Value: bson.D{{Key: "histograms", Value: true}}},
+			{Key: "storageStats", Value: bson.D{}},
+			{Key: "count", Value: bson.D{}},
+			{Key: "queryExecStats", Value: bson.D{}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
 // --- $count ---
 
 func TestCountStage(t *testing.T) {
@@ -375,6 +453,82 @@ func TestCountStage(t *testing.T) {
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{{Key: "score", Value: bson.D{{Key: "$gt", Value: 80}}}}}},
 		bson.D{{Key: "$count", Value: "passing_scores"}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// --- $currentOp ---
+
+func TestCurrentOpStage_InactiveSessions(t *testing.T) {
+	got := agg.Pipeline{
+		agg.CurrentOpStage(
+			agg.WithCurrentOpAllUsers(true),
+			agg.WithCurrentOpIdleSessions(true),
+		),
+		agg.MatchStage(
+			query.Field("active", query.Eq(false)),
+			query.Field("transaction", query.Exists(true)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$currentOp", Value: bson.D{
+			{Key: "allUsers", Value: true},
+			{Key: "idleSessions", Value: true},
+		}}},
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "active", Value: bson.D{{Key: "$eq", Value: false}}},
+			{Key: "transaction", Value: bson.D{{Key: "$exists", Value: true}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestCurrentOpStage_IdleConnections(t *testing.T) {
+	got := agg.Pipeline{
+		agg.CurrentOpStage(
+			agg.WithCurrentOpIdleConnections(true),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$currentOp", Value: bson.D{
+			{Key: "idleConnections", Value: true},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestCurrentOpStage_LocalOps(t *testing.T) {
+	got := agg.Pipeline{
+		agg.CurrentOpStage(
+			agg.WithCurrentOpLocalOps(true),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$currentOp", Value: bson.D{
+			{Key: "localOps", Value: true},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestCurrentOpStage_MultipleOptions(t *testing.T) {
+	got := agg.Pipeline{
+		agg.CurrentOpStage(
+			agg.WithCurrentOpLocalOps(true),
+			agg.WithCurrentOpIdleCursors(true),
+			agg.WithCurrentOpAllUsers(true),
+			agg.WithCurrentOpIdleSessions(false),
+			agg.WithCurrentOpIdleConnections(true),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$currentOp", Value: bson.D{
+			{Key: "allUsers", Value: true},
+			{Key: "idleConnections", Value: true},
+			{Key: "idleCursors", Value: true},
+			{Key: "idleSessions", Value: false},
+			{Key: "localOps", Value: true},
+		}}},
 	}
 	assertPipelineEqual(t, got, want)
 }
