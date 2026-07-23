@@ -126,6 +126,178 @@ func TestAnd_MultipleExpressionsSameOperator(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
+func TestBitsAllClear_BitPositionArray(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("a", query.BitsAllClear([]int{1, 5})),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "a", Value: bson.D{{Key: "$bitsAllClear", Value: bson.A{1, 5}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestBitsAllClear_IntegerBitmask(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("a", query.BitsAllClear(35)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "a", Value: bson.D{{Key: "$bitsAllClear", Value: 35}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestBitsAllClear_BinDataBitmask(t *testing.T) {
+	bitmask := bson.Binary{Subtype: 0x00, Data: []byte{0x20}}
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("a", query.BitsAllClear(bitmask)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "a", Value: bson.D{{Key: "$bitsAllClear", Value: bitmask}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestBitsAllSet_BitPositionArray(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("a", query.BitsAllSet([]int{1, 5})),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "a", Value: bson.D{{Key: "$bitsAllSet", Value: bson.A{1, 5}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestBitsAllSet_IntegerBitmask(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("a", query.BitsAllSet(50)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "a", Value: bson.D{{Key: "$bitsAllSet", Value: 50}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestBitsAllSet_BinDataBitmask(t *testing.T) {
+	bitmask := bson.Binary{Subtype: 0x00, Data: []byte{0x20}}
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("a", query.BitsAllSet(bitmask)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "a", Value: bson.D{{Key: "$bitsAllSet", Value: bitmask}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestBitsAnyClear_BitPositionArray(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("a", query.BitsAnyClear([]int{1, 5})),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "a", Value: bson.D{{Key: "$bitsAnyClear", Value: bson.A{1, 5}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestBitsAnyClear_IntegerBitmask(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("a", query.BitsAnyClear(35)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "a", Value: bson.D{{Key: "$bitsAnyClear", Value: 35}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestBitsAnyClear_BinDataBitmask(t *testing.T) {
+	bitmask := bson.Binary{Subtype: 0x00, Data: []byte{0x20}}
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("a", query.BitsAnyClear(bitmask)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "a", Value: bson.D{{Key: "$bitsAnyClear", Value: bitmask}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestBitsAnySet_BitPositionArray(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("a", query.BitsAnySet([]int{1, 5})),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "a", Value: bson.D{{Key: "$bitsAnySet", Value: bson.A{1, 5}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestBitsAnySet_IntegerBitmask(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("a", query.BitsAnySet(35)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "a", Value: bson.D{{Key: "$bitsAnySet", Value: 35}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestBitsAnySet_BinDataBitmask(t *testing.T) {
+	bitmask := bson.Binary{Subtype: 0x00, Data: []byte{0x20}}
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("a", query.BitsAnySet(bitmask)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "a", Value: bson.D{{Key: "$bitsAnySet", Value: bitmask}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
 func TestBox(t *testing.T) {
 	got := agg.Pipeline{
 		agg.MatchStage(
@@ -175,6 +347,30 @@ func TestCenterSphere(t *testing.T) {
 			{Key: "loc", Value: bson.D{{Key: "$geoWithin", Value: bson.D{
 				{Key: "$centerSphere", Value: bson.A{bson.A{-88.0, 30.0}, 0.01}},
 			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestComment(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("x", query.Gt(0)),
+			query.Comment("Don't allow negative inputs."),
+		),
+		agg.GroupStage(
+			agg.Mod("$x", 2),
+			agg.Accumulate("total", agg.SumAccumulator("$x")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "x", Value: bson.D{{Key: "$gt", Value: 0}}},
+			{Key: "$comment", Value: "Don't allow negative inputs."},
+		}}},
+		bson.D{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: bson.D{{Key: "$mod", Value: bson.A{"$x", 2}}}},
+			{Key: "total", Value: bson.D{{Key: "$sum", Value: "$x"}}},
 		}}},
 	}
 	assertPipelineEqual(t, got, want)
@@ -378,6 +574,76 @@ func TestExists_MissingField(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
+func TestExpr_CompareTwoFieldsFromSingleDoc(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Expr(agg.Gt("$spent", "$budget")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$expr", Value: bson.D{{Key: "$gt", Value: bson.A{"$spent", "$budget"}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// TODO: implement TestExpr_ConditionalStatements when $cond is implemented
+
+func TestGeoIntersects_BigPolygon(t *testing.T) {
+	coords := [][][]float64{{{-100, 60}, {-100, 0}, {-100, -60}, {100, -60}, {100, 60}, {-100, 60}}}
+	crs := bson.D{
+		{Key: "type", Value: "name"},
+		{Key: "properties", Value: bson.D{
+			{Key: "name", Value: "urn:x-mongodb:crs:strictwinding:EPSG:4326"},
+		}},
+	}
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("loc", query.GeoIntersects(
+				query.GeoJSON("Polygon", coords, query.WithGeoJSONCRS(crs)),
+			)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "loc", Value: bson.D{{Key: "$geoIntersects", Value: bson.D{
+				{Key: "$geometry", Value: bson.D{
+					{Key: "type", Value: "Polygon"},
+					{Key: "coordinates", Value: bson.A{bson.A{
+						bson.A{-100.0, 60.0}, bson.A{-100.0, 0.0}, bson.A{-100.0, -60.0},
+						bson.A{100.0, -60.0}, bson.A{100.0, 60.0}, bson.A{-100.0, 60.0},
+					}}},
+					{Key: "crs", Value: crs},
+				}},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestGeoIntersects_Polygon(t *testing.T) {
+	coords := [][][]float64{{{0, 0}, {3, 6}, {6, 1}, {0, 0}}}
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("loc", query.GeoIntersects(query.GeoJSON("Polygon", coords))),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "loc", Value: bson.D{{Key: "$geoIntersects", Value: bson.D{
+				{Key: "$geometry", Value: bson.D{
+					{Key: "type", Value: "Polygon"},
+					{Key: "coordinates", Value: bson.A{bson.A{
+						bson.A{0.0, 0.0}, bson.A{3.0, 6.0}, bson.A{6.0, 1.0}, bson.A{0.0, 0.0},
+					}}},
+				}},
+			}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
 func TestGeoJSON_Point(t *testing.T) {
 	coords := []float64{-73.9667, 40.78}
 	got := agg.Pipeline{
@@ -445,60 +711,6 @@ func TestGeoJSON_WithCRS(t *testing.T) {
 						bson.A{100.0, 60.0}, bson.A{-100.0, 60.0},
 					}}},
 					{Key: "crs", Value: crs},
-				}},
-			}}}},
-		}}},
-	}
-	assertPipelineEqual(t, got, want)
-}
-
-func TestGeoIntersects_BigPolygon(t *testing.T) {
-	coords := [][][]float64{{{-100, 60}, {-100, 0}, {-100, -60}, {100, -60}, {100, 60}, {-100, 60}}}
-	crs := bson.D{
-		{Key: "type", Value: "name"},
-		{Key: "properties", Value: bson.D{
-			{Key: "name", Value: "urn:x-mongodb:crs:strictwinding:EPSG:4326"},
-		}},
-	}
-	got := agg.Pipeline{
-		agg.MatchStage(
-			query.Field("loc", query.GeoIntersects(
-				query.GeoJSON("Polygon", coords, query.WithGeoJSONCRS(crs)),
-			)),
-		),
-	}
-	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{
-			{Key: "loc", Value: bson.D{{Key: "$geoIntersects", Value: bson.D{
-				{Key: "$geometry", Value: bson.D{
-					{Key: "type", Value: "Polygon"},
-					{Key: "coordinates", Value: bson.A{bson.A{
-						bson.A{-100.0, 60.0}, bson.A{-100.0, 0.0}, bson.A{-100.0, -60.0},
-						bson.A{100.0, -60.0}, bson.A{100.0, 60.0}, bson.A{-100.0, 60.0},
-					}}},
-					{Key: "crs", Value: crs},
-				}},
-			}}}},
-		}}},
-	}
-	assertPipelineEqual(t, got, want)
-}
-
-func TestGeoIntersects_Polygon(t *testing.T) {
-	coords := [][][]float64{{{0, 0}, {3, 6}, {6, 1}, {0, 0}}}
-	got := agg.Pipeline{
-		agg.MatchStage(
-			query.Field("loc", query.GeoIntersects(query.GeoJSON("Polygon", coords))),
-		),
-	}
-	want := bson.A{
-		bson.D{{Key: "$match", Value: bson.D{
-			{Key: "loc", Value: bson.D{{Key: "$geoIntersects", Value: bson.D{
-				{Key: "$geometry", Value: bson.D{
-					{Key: "type", Value: "Polygon"},
-					{Key: "coordinates", Value: bson.A{bson.A{
-						bson.A{0.0, 0.0}, bson.A{3.0, 6.0}, bson.A{6.0, 1.0}, bson.A{0.0, 0.0},
-					}}},
 				}},
 			}}}},
 		}}},
@@ -619,6 +831,37 @@ func TestIn_RegularExpression(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
+func TestJSONSchema(t *testing.T) {
+	schema := bson.D{
+		{Key: "required", Value: bson.A{"name", "major", "gpa", "address"}},
+		{Key: "properties", Value: bson.D{
+			{Key: "name", Value: bson.D{
+				{Key: "bsonType", Value: "string"},
+				{Key: "description", Value: "must be a string and is required"},
+			}},
+			{Key: "address", Value: bson.D{
+				{Key: "bsonType", Value: "object"},
+				{Key: "required", Value: bson.A{"zipcode"}},
+				{Key: "properties", Value: bson.D{
+					{Key: "street", Value: bson.D{{Key: "bsonType", Value: "string"}}},
+					{Key: "zipcode", Value: bson.D{{Key: "bsonType", Value: "string"}}},
+				}},
+			}},
+		}},
+	}
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.JSONSchema(schema),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$jsonSchema", Value: schema},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
 func TestLt(t *testing.T) {
 	got := agg.Pipeline{
 		agg.MatchStage(
@@ -661,11 +904,25 @@ func TestMaxDistance(t *testing.T) {
 
 func TestMinDistance(t *testing.T) {
 	got := agg.Pipeline{
-		agg.MatchStage(query.Field("loc", query.MinDistance(1000))),
+		agg.MatchStage(query.Field("loc", query.MinDistance((1000)))),
 	}
 	want := bson.A{
 		bson.D{{Key: "$match", Value: bson.D{
 			{Key: "loc", Value: bson.D{{Key: "$minDistance", Value: 1000}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestMod_SelectDocs(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("qty", query.Mod(4, 0)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "qty", Value: bson.D{{Key: "$mod", Value: bson.A{4, 0}}}},
 		}}},
 	}
 	assertPipelineEqual(t, got, want)
@@ -901,6 +1158,36 @@ func TestPolygon(t *testing.T) {
 	assertPipelineEqual(t, got, want)
 }
 
+func TestRegex_PerformLikeMatch(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("sku", query.Regex(bson.Regex{Pattern: "789$"})),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "sku", Value: bson.D{{Key: "$regex", Value: bson.Regex{Pattern: "789$"}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestRegex_PerformCaseInsensitiveMatch(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Field("sku", query.Regex(bson.Regex{Pattern: "^ABC", Options: "i"})),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "sku", Value: bson.D{{Key: "$regex", Value: bson.Regex{Pattern: "^ABC", Options: "i"}}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// TODO: implement $sampleRate tests when $count stage is implemented
+
 func TestSize_QueryAnArrayByLength(t *testing.T) {
 	got := agg.Pipeline{
 		agg.MatchStage(
@@ -914,6 +1201,112 @@ func TestSize_QueryAnArrayByLength(t *testing.T) {
 	}
 	assertPipelineEqual(t, got, want)
 }
+
+func TestText_SearchForSingleWord(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Text("coffee"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$text", Value: bson.D{{Key: "$search", Value: "coffee"}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestText_MatchAnyOfSearchTerms(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Text("bake coffee cake"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$text", Value: bson.D{{Key: "$search", Value: "bake coffee cake"}}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestText_SearchDifferentLanguage(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Text("leche", query.WithTextLanguage("es")),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$text", Value: bson.D{
+				{Key: "$search", Value: "leche"},
+				{Key: "$language", Value: "es"},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestText_CaseAndDiacriticInsensitiveSearch(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Text("сы́рники CAFÉS"),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$text", Value: bson.D{
+				{Key: "$search", Value: "сы́рники CAFÉS"},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestText_CaseSensitiveSearch(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Text("Coffee", query.WithTextCaseSensitive(true)),
+		),
+		agg.MatchStage(
+			query.Text(`"Café Con Leche"`, query.WithTextCaseSensitive(true)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$text", Value: bson.D{
+				{Key: "$search", Value: "Coffee"},
+				{Key: "$caseSensitive", Value: true},
+			}},
+		}}},
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$text", Value: bson.D{
+				{Key: "$search", Value: `"Café Con Leche"`},
+				{Key: "$caseSensitive", Value: true},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+func TestText_DiacriticSensitiveSearch(t *testing.T) {
+	got := agg.Pipeline{
+		agg.MatchStage(
+			query.Text("CAFÉ", query.WithTextDiacriticSensitive(true)),
+		),
+	}
+	want := bson.A{
+		bson.D{{Key: "$match", Value: bson.D{
+			{Key: "$text", Value: bson.D{
+				{Key: "$search", Value: "CAFÉ"},
+				{Key: "$diacriticSensitive", Value: true},
+			}},
+		}}},
+	}
+	assertPipelineEqual(t, got, want)
+}
+
+// TODO: test TestText_TextSearchScoreExamples when $meta is implemented
 
 func TestType_QueryingByDataType(t *testing.T) {
 	got := agg.Pipeline{
